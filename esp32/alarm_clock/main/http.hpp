@@ -102,8 +102,8 @@ std::string socket_read(const char* tag, int sock);
 std::expected<std::string, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::string& data);
 
 
-void main(void* args) {
-  std::shared_ptr<Requests> requests = *static_cast<std::shared_ptr<Requests>*>(args);
+void main(void* arg) {
+  std::shared_ptr<Requests> requests = *static_cast<std::shared_ptr<Requests>*>(arg);
 
   ESP_ERROR_CHECK(nvs_flash_init());
   ESP_ERROR_CHECK(esp_netif_init());
@@ -194,7 +194,7 @@ bool socket_connect(const char* tag, int sock, addrinfo* dns_result) {
 std::string create_request(const std::string& host, const std::string& data) {
   std::string result = "POST / HTTP/1.1\r\n"
                        "Host: " + host + "\r\n"
-                       "Content-Type: text/plain\r\n"
+                       "Content-Type: image/jpeg\r\n"
                        "Content-Length: " + std::to_string(data.length()) + "\r\n"
                        "\r\n" + data;
   return result;
