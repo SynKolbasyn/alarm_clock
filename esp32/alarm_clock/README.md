@@ -1,11 +1,17 @@
 # 1. Set target
 
 ```Bash
-idf.py set-target <esp32>
+idf.py set-target esp32s3
 ```
 
 
-# 2. Configure project
+# 2. Add dependencies
+```Bash
+idf.py add-dependency "espressif/esp32-camera"
+```
+
+
+# 3. Configure project
 
 ```Bash
 idf.py menuconfig
@@ -18,23 +24,24 @@ idf.py menuconfig
 ## enable:
 1. CONFIG_COMPILER_CXX_EXCEPTIONS
 2. CONFIG_COMPILER_CXX_RTTI
+3. PSRAM OCTO MOD & 80 MHz freq
 
 
-# 3. Build application
+# 4. Build application
 
 ```Bash
 idf.py build
 ```
 
 
-# 4. Flash chip
+# 5. Flash chip
 
 ```Bash
 idf.py flash
 ```
 
 
-# 5. Check chip logs
+# 6. Check chip logs
 
 ```Bash
 idf.py monitor

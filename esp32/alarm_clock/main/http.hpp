@@ -134,7 +134,7 @@ std::expected<std::string, http_error> send_request(const char* tag, const std::
   if (addr == nullptr) return std::unexpected(dns_lookup_failed);
 
   int sock = create_socket(tag, dns_result);
-  if (sock == -1) return std::unexpected(allocate_socket_failed);
+  if (sock < 0) return std::unexpected(allocate_socket_failed);
 
   if (!socket_connect(tag, sock, dns_result)) return std::unexpected(socket_connect_failed);
 
@@ -169,7 +169,7 @@ int create_socket(const char* tag, addrinfo* dns_result) {
   if(sock < 0) {
     ESP_LOGE(tag, "failed to allocate socket");
     freeaddrinfo(dns_result);
-    return -1;
+    return sock;
   }
   ESP_LOGI(tag, "allocated socket");
   return sock;
