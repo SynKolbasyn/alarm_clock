@@ -5,7 +5,7 @@
 #define CAMERA_HPP
 
 
-#include <string>
+#include <vector>
 #include <memory>
 
 #include <esp_log.h>
@@ -16,6 +16,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 
 #include "http.hpp"
 
@@ -27,7 +28,7 @@ esp_err_t init_camera();
 
 
 void main(void* arg) {
-  std::shared_ptr<http::Requests> requests = *static_cast<std::shared_ptr<http::Requests>*>(arg);
+  QueueHandle_t* requests_queue = static_cast<QueueHandle_t*>(arg);
 
   const char* tag = "cam";
 
@@ -40,7 +41,8 @@ void main(void* arg) {
     camera_fb_t* pic = esp_camera_fb_get();
 
     ESP_LOGI(tag, "Picture maked | (%d, %d): %zu bytes", pic->width, pic->height, pic->len);
-    requests->push(std::string(pic->buf, pic->buf + pic->len));
+    std::vector<std::uint8_t> data(pic->buf, pic->buf + pic->len);
+    if (xQueueSend(*requests_queue, static_cast<void*>(&data), portMAX_DELAY) != pdTRUE) ESP_LOGE(tag, "can't send item to requests queueu");
 
     esp_camera_fb_return(pic);
 

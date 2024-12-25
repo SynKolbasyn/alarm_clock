@@ -10,6 +10,7 @@
 #include <queue>
 #include <cstdint>
 #include <string>
+#include <vector>
 #include <expected>
 
 #include "esp_system.h"
@@ -27,6 +28,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 
 #include "protocol_examples_common.h"
 
@@ -43,67 +45,17 @@ enum http_error {
 };
 
 
-class Requests {
-public:
-  Requests();
-  Requests(const Requests&) = delete;
-  Requests(Requests&&) = delete;
-  Requests operator=(const Requests&) = delete;
-  Requests operator=(Requests&&) = delete;
-  ~Requests();
-
-  void push(std::string request);
-  std::string pop();
-  bool empty() const;
-
-private:
-  mutable std::shared_mutex mutex;
-  std::queue<std::string> queue;
-};
-
-
-Requests::Requests() {
-
-}
-
-
-Requests::~Requests() {
-  
-}
-
-
-void Requests::push(std::string request) {
-  std::unique_lock lock { this->mutex };
-  this->queue.push(request);
-}
-
-
-std::string Requests::pop() {
-  std::unique_lock lock { this->mutex };
-  std::string request = std::move(this->queue.front());
-  this->queue.pop();
-  return request;
-}
-
-
-bool Requests::empty() const {
-  std::shared_lock lock { this->mutex };
-  return this->queue.empty();
-}
-
-
 in_addr* dns_lookup(const char* tag, addrinfo** dns_result, const std::string& server_address, const std::string& server_port);
 int create_socket(const char* tag, addrinfo* dns_result);
 bool socket_connect(const char* tag, int sock, addrinfo* dns_result);
-std::string create_request(const std::string& host, const std::string& data);
-bool socket_write(const char* tag, int sock, const std::string& request);
+bool socket_write(const char* tag, int sock, const std::vector<std::uint8_t>& request);
 bool set_socket_timeout(const char* tag, int sock);
-std::string socket_read(const char* tag, int sock);
-std::expected<std::string, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::string& data);
+std::vector<std::uint8_t> socket_read(const char* tag, int sock);
+std::expected<std::vector<std::uint8_t>, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data);
 
 
 void main(void* arg) {
-  std::shared_ptr<Requests> requests = *static_cast<std::shared_ptr<Requests>*>(arg);
+  QueueHandle_t* requests_queue = static_cast<QueueHandle_t*>(arg);
 
   ESP_ERROR_CHECK(nvs_flash_init());
   ESP_ERROR_CHECK(esp_netif_init());
@@ -116,19 +68,18 @@ void main(void* arg) {
   const std::string server_port = "80";
 
   while (true) {
-    if (requests->empty()) {
-      vTaskDelay(1 / portTICK_PERIOD_MS);
+    std::vector<std::uint8_t> data;
+    if (xQueueReceive(*requests_queue, static_cast<void*>(&data), portMAX_DELAY) != pdTRUE) {
+      ESP_LOGE(tag, "can't receive item from requests queue");
       continue;
     }
-
-    const std::string data = requests->pop();
-    std::expected<std::string, http_error> request_result = send_request(tag, server_address, server_port, data);
-    if (request_result.has_value()) ESP_LOGI(tag, "request result: \n%s", request_result->c_str());
+    std::expected<std::vector<std::uint8_t>, http_error> request_result = send_request(tag, server_address, server_port, data);
+    if (request_result.has_value()) ESP_LOGI(tag, "request result size: \n%zu", request_result->size());
   }
 }
 
 
-std::expected<std::string, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::string& data) {
+std::expected<std::vector<std::uint8_t>, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data) {
   addrinfo* dns_result;
   in_addr* addr = dns_lookup(tag, &dns_result, server_address, server_port);
   if (addr == nullptr) return std::unexpected(dns_lookup_failed);
@@ -138,8 +89,7 @@ std::expected<std::string, http_error> send_request(const char* tag, const std::
 
   if (!socket_connect(tag, sock, dns_result)) return std::unexpected(socket_connect_failed);
 
-  std::string request = create_request(server_address, data);
-  if (!socket_write(tag, sock, request)) return std::unexpected(socket_send_failed);
+  if (!socket_write(tag, sock, data)) return std::unexpected(socket_send_failed);
 
   if (!set_socket_timeout(tag, sock)) return std::unexpected(set_socket_recv_timeout_failed);
 
@@ -191,18 +141,8 @@ bool socket_connect(const char* tag, int sock, addrinfo* dns_result) {
 }
 
 
-std::string create_request(const std::string& host, const std::string& data) {
-  std::string result = "POST / HTTP/1.1\r\n"
-                       "Host: " + host + "\r\n"
-                       "Content-Type: image/jpeg\r\n"
-                       "Content-Length: " + std::to_string(data.length()) + "\r\n"
-                       "\r\n" + data;
-  return result;
-}
-
-
-bool socket_write(const char* tag, int sock, const std::string& request) {
-  if (write(sock, request.c_str(), request.length()) < 0) {
+bool socket_write(const char* tag, int sock, const std::vector<std::uint8_t>& request) {
+  if (write(sock, static_cast<const void*>(&request.front()), request.size()) < 0) {
     ESP_LOGE(tag, "socket send failed");
     close(sock);
     return false;
@@ -226,22 +166,22 @@ bool set_socket_timeout(const char* tag, int sock) {
 }
 
 
-std::string socket_read(const char* tag, int sock) {
-  std::string result;
+std::vector<std::uint8_t> socket_read(const char* tag, int sock) {
+  std::vector<std::uint8_t> result;
 
   while (true) {
     constexpr std::uint16_t buffer_size = 2048;
-    char buffer[1024];
+    std::uint8_t buffer[buffer_size];
     int read_size = read(sock, buffer, buffer_size);
 
     if ((0 < read_size) && (read_size <= buffer_size)) {
-      result.append(buffer, read_size);
+      result = std::vector<std::uint8_t>(buffer, buffer + read_size);
       break;
     }
     else ESP_LOGE(tag, "buffer overflowed");
   }
 
-  ESP_LOGI(tag, "done reading from socket | return: %d errno: %d", result.length(), errno);
+  ESP_LOGI(tag, "done reading from socket | return: %d errno: %d", result.size(), errno);
   close(sock);
 
   return result;
