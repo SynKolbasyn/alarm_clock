@@ -169,17 +169,12 @@ bool set_socket_timeout(const char* tag, int sock) {
 std::vector<std::uint8_t> socket_read(const char* tag, int sock) {
   std::vector<std::uint8_t> result;
 
-  while (true) {
-    constexpr std::uint16_t buffer_size = 2048;
-    std::uint8_t buffer[buffer_size];
-    int read_size = read(sock, buffer, buffer_size);
+  constexpr std::uint16_t buffer_size = 2048;
+  std::uint8_t buffer[buffer_size];
+  int read_size = read(sock, buffer, buffer_size);
 
-    if ((0 < read_size) && (read_size <= buffer_size)) {
-      result = std::vector<std::uint8_t>(buffer, buffer + read_size);
-      break;
-    }
-    else ESP_LOGE(tag, "buffer overflowed");
-  }
+  if (read_size > 0) result = std::vector<std::uint8_t>(buffer, buffer + read_size);
+  else ESP_LOGE(tag, "can't read server response");
 
   ESP_LOGI(tag, "done reading from socket | return: %d errno: %d", result.size(), errno);
   close(sock);

@@ -15,7 +15,8 @@
 extern "C" void app_main(void) {
   const char* tag = "main";
 
-  QueueHandle_t requests_queue = xQueueCreate(10, sizeof(std::vector<std::uint8_t>));
+  constexpr std::uint32_t requests_queue_size = 10;
+  QueueHandle_t requests_queue = xQueueCreate(requests_queue_size, sizeof(std::vector<std::uint8_t>));
 
   TaskHandle_t http_task_handle;
   TaskHandle_t cam_task_handle;
