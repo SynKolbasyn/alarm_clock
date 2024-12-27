@@ -28,7 +28,6 @@ esp_err_t init_camera();
 
 
 void main(void* arg) {
-  // QueueHandle_t* requests_queue = static_cast<QueueHandle_t*>(arg);
   http::Requests* requests_queue = static_cast<http::Requests*>(arg);
 
   const char* tag = "cam";

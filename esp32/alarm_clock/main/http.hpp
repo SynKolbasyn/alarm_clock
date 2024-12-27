@@ -47,50 +47,63 @@ enum http_error {
 
 class Requests {
 public:
-  Requests();
+  Requests(std::uint64_t max_len) noexcept;
+  Requests() = delete;
   Requests(const Requests&) = delete;
   Requests(Requests&&) = delete;
   Requests operator=(const Requests&) = delete;
   Requests operator=(Requests&&) = delete;
-  ~Requests();
+  ~Requests() noexcept;
 
-  void push(std::vector<std::uint8_t> request);
-  std::vector<std::uint8_t> pop();
-  bool empty() const;
+  void push(std::vector<std::uint8_t> request) noexcept;
+  std::vector<std::uint8_t> pop() noexcept;
 
 private:
   mutable std::shared_mutex mutex;
+  std::uint64_t max_len;
   std::queue<std::vector<std::uint8_t>> queue;
 };
 
 
-Requests::Requests() {
-
+Requests::Requests(std::uint64_t max_len) noexcept {
+  this->max_len = max_len;
 }
 
 
-Requests::~Requests() {
+Requests::~Requests() noexcept {
   
 }
 
 
-void Requests::push(std::vector<std::uint8_t> request) {
-  std::unique_lock lock { this->mutex };
-  this->queue.push(request);
+void Requests::push(std::vector<std::uint8_t> request) noexcept {
+  while (true) {
+    std::unique_lock lock { this->mutex };
+
+    if (this->queue.size() >= this->max_len) {
+      vTaskDelay(1 / portTICK_PERIOD_MS);
+      continue;
+    }
+
+    this->queue.push(request);
+    return;
+  }
 }
 
 
-std::vector<std::uint8_t> Requests::pop() {
-  std::unique_lock lock { this->mutex };
-  std::vector<std::uint8_t> request = std::move(this->queue.front());
-  this->queue.pop();
-  return request;
-}
+std::vector<std::uint8_t> Requests::pop() noexcept {
+  while (true) {
+    std::unique_lock lock { this->mutex };
 
+    if (this->queue.empty()) {
+      vTaskDelay(1 / portTICK_PERIOD_MS);
+      continue;
+    }
 
-bool Requests::empty() const {
-  std::shared_lock lock { this->mutex };
-  return this->queue.empty();
+    std::vector<std::uint8_t> request = std::move(this->queue.front());
+    this->queue.pop();
+
+    return request;
+  }
 }
 
 
@@ -100,12 +113,11 @@ bool socket_connect(const char* tag, int sock, addrinfo* dns_result);
 std::string create_request(const std::string& host, const std::vector<std::uint8_t>& data);
 bool socket_write(const char* tag, int sock, const std::string& host, const std::vector<std::uint8_t>& request);
 bool set_socket_timeout(const char* tag, int sock);
-std::vector<std::uint8_t> socket_read(const char* tag, int sock);
-std::expected<std::vector<std::uint8_t>, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data);
+std::string socket_read(const char* tag, int sock);
+std::expected<std::string, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data);
 
 
 void main(void* arg) {
-  // QueueHandle_t* requests_queue = static_cast<QueueHandle_t*>(arg);
   Requests* requests_queue = static_cast<Requests*>(arg);
 
   ESP_ERROR_CHECK(nvs_flash_init());
@@ -115,22 +127,18 @@ void main(void* arg) {
 
   const char* tag = "http";
 
-  const std::string server_address = "192.168.242.231";
+  const std::string server_address = "192.168.207.53";
   const std::string server_port = "8000";
 
   while (true) {
-    if (requests_queue->empty()) {
-      vTaskDelay(1 / portTICK_PERIOD_MS);
-      continue;
-    }
     std::vector<std::uint8_t> data = requests_queue->pop();
-    std::expected<std::vector<std::uint8_t>, http_error> request_result = send_request(tag, server_address, server_port, data);
-    if (request_result.has_value()) ESP_LOGI(tag, "request result size: \n%zu", request_result->size());
+    std::expected<std::string, http_error> request_result = send_request(tag, server_address, server_port, data);
+    if (request_result.has_value()) ESP_LOGI(tag, "request result size: \n%zu\n\n%s", request_result->size(), request_result->c_str());
   }
 }
 
 
-std::expected<std::vector<std::uint8_t>, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data) {
+std::expected<std::string, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data) {
   addrinfo* dns_result;
   in_addr* addr = dns_lookup(tag, &dns_result, server_address, server_port);
   if (addr == nullptr) return std::unexpected(dns_lookup_failed);
@@ -229,14 +237,14 @@ bool set_socket_timeout(const char* tag, int sock) {
 }
 
 
-std::vector<std::uint8_t> socket_read(const char* tag, int sock) {
-  std::vector<std::uint8_t> result;
+std::string socket_read(const char* tag, int sock) {
+  std::string result;
 
   constexpr std::uint16_t buffer_size = 2048;
   std::uint8_t buffer[buffer_size];
   int read_size = read(sock, buffer, buffer_size);
 
-  if (read_size > 0) result = std::vector<std::uint8_t>(buffer, buffer + read_size);
+  if (read_size > 0) result = std::string(buffer, buffer + read_size);
   else ESP_LOGE(tag, "can't read server response");
 
   ESP_LOGI(tag, "done reading from socket | return: %d errno: %d", result.size(), errno);
