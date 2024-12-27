@@ -28,7 +28,8 @@ esp_err_t init_camera();
 
 
 void main(void* arg) {
-  QueueHandle_t* requests_queue = static_cast<QueueHandle_t*>(arg);
+  // QueueHandle_t* requests_queue = static_cast<QueueHandle_t*>(arg);
+  http::Requests* requests_queue = static_cast<http::Requests*>(arg);
 
   const char* tag = "cam";
 
@@ -42,11 +43,11 @@ void main(void* arg) {
 
     ESP_LOGI(tag, "Picture maked | (%d, %d): %zu bytes", pic->width, pic->height, pic->len);
     std::vector<std::uint8_t> data(pic->buf, pic->buf + pic->len);
-    if (xQueueSend(*requests_queue, static_cast<void*>(&data), portMAX_DELAY) != pdTRUE) ESP_LOGE(tag, "can't send item to requests queueu");
+    requests_queue->push(data);
 
     esp_camera_fb_return(pic);
 
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
 

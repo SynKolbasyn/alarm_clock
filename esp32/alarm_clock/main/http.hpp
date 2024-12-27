@@ -45,17 +45,68 @@ enum http_error {
 };
 
 
+class Requests {
+public:
+  Requests();
+  Requests(const Requests&) = delete;
+  Requests(Requests&&) = delete;
+  Requests operator=(const Requests&) = delete;
+  Requests operator=(Requests&&) = delete;
+  ~Requests();
+
+  void push(std::vector<std::uint8_t> request);
+  std::vector<std::uint8_t> pop();
+  bool empty() const;
+
+private:
+  mutable std::shared_mutex mutex;
+  std::queue<std::vector<std::uint8_t>> queue;
+};
+
+
+Requests::Requests() {
+
+}
+
+
+Requests::~Requests() {
+  
+}
+
+
+void Requests::push(std::vector<std::uint8_t> request) {
+  std::unique_lock lock { this->mutex };
+  this->queue.push(request);
+}
+
+
+std::vector<std::uint8_t> Requests::pop() {
+  std::unique_lock lock { this->mutex };
+  std::vector<std::uint8_t> request = std::move(this->queue.front());
+  this->queue.pop();
+  return request;
+}
+
+
+bool Requests::empty() const {
+  std::shared_lock lock { this->mutex };
+  return this->queue.empty();
+}
+
+
 in_addr* dns_lookup(const char* tag, addrinfo** dns_result, const std::string& server_address, const std::string& server_port);
 int create_socket(const char* tag, addrinfo* dns_result);
 bool socket_connect(const char* tag, int sock, addrinfo* dns_result);
-bool socket_write(const char* tag, int sock, const std::vector<std::uint8_t>& request);
+std::string create_request(const std::string& host, const std::vector<std::uint8_t>& data);
+bool socket_write(const char* tag, int sock, const std::string& host, const std::vector<std::uint8_t>& request);
 bool set_socket_timeout(const char* tag, int sock);
 std::vector<std::uint8_t> socket_read(const char* tag, int sock);
 std::expected<std::vector<std::uint8_t>, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data);
 
 
 void main(void* arg) {
-  QueueHandle_t* requests_queue = static_cast<QueueHandle_t*>(arg);
+  // QueueHandle_t* requests_queue = static_cast<QueueHandle_t*>(arg);
+  Requests* requests_queue = static_cast<Requests*>(arg);
 
   ESP_ERROR_CHECK(nvs_flash_init());
   ESP_ERROR_CHECK(esp_netif_init());
@@ -64,15 +115,15 @@ void main(void* arg) {
 
   const char* tag = "http";
 
-  const std::string server_address = "192.168.1.17";
-  const std::string server_port = "80";
+  const std::string server_address = "192.168.242.231";
+  const std::string server_port = "8000";
 
   while (true) {
-    std::vector<std::uint8_t> data;
-    if (xQueueReceive(*requests_queue, static_cast<void*>(&data), portMAX_DELAY) != pdTRUE) {
-      ESP_LOGE(tag, "can't receive item from requests queue");
+    if (requests_queue->empty()) {
+      vTaskDelay(1 / portTICK_PERIOD_MS);
       continue;
     }
+    std::vector<std::uint8_t> data = requests_queue->pop();
     std::expected<std::vector<std::uint8_t>, http_error> request_result = send_request(tag, server_address, server_port, data);
     if (request_result.has_value()) ESP_LOGI(tag, "request result size: \n%zu", request_result->size());
   }
@@ -89,7 +140,7 @@ std::expected<std::vector<std::uint8_t>, http_error> send_request(const char* ta
 
   if (!socket_connect(tag, sock, dns_result)) return std::unexpected(socket_connect_failed);
 
-  if (!socket_write(tag, sock, data)) return std::unexpected(socket_send_failed);
+  if (!socket_write(tag, sock, server_address, data)) return std::unexpected(socket_send_failed);
 
   if (!set_socket_timeout(tag, sock)) return std::unexpected(set_socket_recv_timeout_failed);
 
@@ -141,8 +192,20 @@ bool socket_connect(const char* tag, int sock, addrinfo* dns_result) {
 }
 
 
-bool socket_write(const char* tag, int sock, const std::vector<std::uint8_t>& request) {
-  if (write(sock, static_cast<const void*>(&request.front()), request.size()) < 0) {
+std::string create_request(const std::string& host, const std::vector<std::uint8_t>& data) {
+  std::string result = "POST / HTTP/1.1\r\n"
+                       "Host: " + host + "\r\n"
+                       "Content-Type: text/plain\r\n"
+                       "Content-Type: image/jpeg\r\n"
+                       "Content-Length: " + std::to_string(data.size()) + "\r\n"
+                       "\r\n" + std::string(data.begin(), data.end());
+  return result;
+}
+
+
+bool socket_write(const char* tag, int sock, const std::string& host, const std::vector<std::uint8_t>& request) {
+  std::string http_request = create_request(host, request);
+  if (write(sock, static_cast<const void*>(http_request.c_str()), http_request.length()) < 0) {
     ESP_LOGE(tag, "socket send failed");
     close(sock);
     return false;

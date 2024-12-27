@@ -16,7 +16,7 @@ extern "C" void app_main(void) {
   const char* tag = "main";
 
   constexpr std::uint32_t requests_queue_size = 10;
-  QueueHandle_t requests_queue = xQueueCreate(requests_queue_size, sizeof(std::vector<std::uint8_t>));
+  http::Requests requests_queue;
 
   TaskHandle_t http_task_handle;
   TaskHandle_t cam_task_handle;
@@ -28,8 +28,6 @@ extern "C" void app_main(void) {
   ESP_LOGI(tag, "Created camera task");
   
   while (true) vTaskDelay(portMAX_DELAY);
-  
-  vQueueDelete(requests_queue);
 
   vTaskDelete(http_task_handle);
   vTaskDelete(cam_task_handle);
