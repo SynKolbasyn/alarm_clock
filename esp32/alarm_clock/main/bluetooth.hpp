@@ -1,41 +1,3 @@
-// #include <vector>
-// #include <cstdint>
-// #include <memory>
-
-// #include "esp_log.h"
-
-// #include "freertos/FreeRTOS.h"
-// #include "freertos/task.h"
-// #include "freertos/queue.h"
-
-// #include "http.hpp"
-// #include "camera.hpp"
-
-
-// extern "C" void app_main(void) {
-//   const char* tag = "main";
-
-//   constexpr std::uint64_t requests_queue_size = 10;
-//   http::Requests requests_queue(requests_queue_size);
-
-//   TaskHandle_t http_task_handle;
-//   TaskHandle_t cam_task_handle;
-  
-//   xTaskCreate(http::main, "http::main", 8192, static_cast<void*>(&requests_queue), 1, &http_task_handle);
-//   ESP_LOGI(tag, "Created http task");
-
-//   xTaskCreate(cam::main, "cam::main", 8192, static_cast<void*>(&requests_queue), 1, &cam_task_handle);
-//   ESP_LOGI(tag, "Created camera task");
-  
-//   while (true) vTaskDelay(portMAX_DELAY);
-
-//   vTaskDelete(http_task_handle);
-//   vTaskDelete(cam_task_handle);
-//   vTaskDelete(nullptr);
-// }
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -58,7 +20,7 @@
 #include "esp_gatt_common_api.h"
 
 
-#define SPP_DEBUG_MODE
+// #define SPP_DEBUG_MODE
 
 #define spp_sprintf(s,...)         sprintf((char*)(s), ##__VA_ARGS__)
 #define SPP_DATA_MAX_LEN           (512)
@@ -626,7 +588,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
   } while (0);
 }
 
-extern "C" void app_main(void) {
+void app_main(void) {
   esp_err_t ret;
   esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
 
