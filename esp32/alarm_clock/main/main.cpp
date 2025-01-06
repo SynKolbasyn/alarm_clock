@@ -43,7 +43,6 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
-#include "driver/uart.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -67,7 +66,7 @@
 #define SPP_DATA_BUFF_MAX_LEN      (2*1024)
 
 ///Attributes State Machine
-enum{
+enum {
   SPP_IDX_SVC,
 
   SPP_IDX_SPP_DATA_RECV_CHAR,
@@ -117,7 +116,6 @@ static const uint8_t spp_adv_data[23] = {
 static uint16_t spp_mtu_size = 23;
 static uint16_t spp_conn_id = 0xffff;
 static esp_gatt_if_t spp_gatts_if = 0xff;
-QueueHandle_t spp_uart_queue = NULL;
 static QueueHandle_t cmd_cmd_queue = NULL;
 
 static bool enable_data_ntf = false;
@@ -150,16 +148,16 @@ struct gatts_profile_inst {
   esp_bt_uuid_t descr_uuid;
 };
 
-typedef struct spp_receive_data_node{
+typedef struct spp_receive_data_node {
   int32_t len;
-  uint8_t * node_buff;
+  uint8_t* node_buff;
   struct spp_receive_data_node* next_node;
 } spp_receive_data_node_t;
 
 static spp_receive_data_node_t* temp_spp_recv_data_node_p1 = NULL;
 static spp_receive_data_node_t* temp_spp_recv_data_node_p2 = NULL;
 
-typedef struct spp_receive_data_buff{
+typedef struct spp_receive_data_buff {
   int32_t node_num;
   int32_t buff_size;
   spp_receive_data_node_t * first_node;
@@ -186,13 +184,12 @@ static struct gatts_profile_inst spp_profile_tab[SPP_PROFILE_NUM] = {
  ****************************************************************************************
  */
 
-#define CHAR_DECLARATION_SIZE   (sizeof(uint8_t))
 static const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
 
-static const uint8_t char_prop_read_notify = ESP_GATT_CHAR_PROP_BIT_READ|ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-static const uint8_t char_prop_read_write = ESP_GATT_CHAR_PROP_BIT_WRITE_NR|ESP_GATT_CHAR_PROP_BIT_READ;
+static const uint8_t char_prop_read_notify = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+static const uint8_t char_prop_read_write = ESP_GATT_CHAR_PROP_BIT_WRITE_NR | ESP_GATT_CHAR_PROP_BIT_READ;
 
 
 ///SPP Service - data receive characteristic, read&write without response
@@ -224,7 +221,7 @@ static const esp_gatts_attr_db_t spp_gatt_db[SPP_IDX_NB] = {
   //SPP -  data receive characteristic Declaration
   [SPP_IDX_SPP_DATA_RECV_CHAR]            =
   {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid, ESP_GATT_PERM_READ,
-  CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t*)&char_prop_read_write}},
+  sizeof(uint8_t), sizeof(uint8_t), (uint8_t*)&char_prop_read_write}},
 
   //SPP -  data receive characteristic Value
   [SPP_IDX_SPP_DATA_RECV_VAL]             	=
@@ -234,7 +231,7 @@ static const esp_gatts_attr_db_t spp_gatt_db[SPP_IDX_NB] = {
   //SPP -  data notify characteristic Declaration
   [SPP_IDX_SPP_DATA_NOTIFY_CHAR]  =
   {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid, ESP_GATT_PERM_READ,
-  CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t*)&char_prop_read_notify}},
+  sizeof(uint8_t), sizeof(uint8_t), (uint8_t*)&char_prop_read_notify}},
 
   //SPP -  data notify characteristic Value
   [SPP_IDX_SPP_DATA_NTY_VAL]   =
@@ -249,7 +246,7 @@ static const esp_gatts_attr_db_t spp_gatt_db[SPP_IDX_NB] = {
   //SPP -  command characteristic Declaration
   [SPP_IDX_SPP_COMMAND_CHAR]            =
   {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid, ESP_GATT_PERM_READ,
-  CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t*)&char_prop_read_write}},
+  sizeof(uint8_t), sizeof(uint8_t), (uint8_t*)&char_prop_read_write}},
 
   //SPP -  command characteristic Value
   [SPP_IDX_SPP_COMMAND_VAL]                 =
@@ -259,7 +256,7 @@ static const esp_gatts_attr_db_t spp_gatt_db[SPP_IDX_NB] = {
   //SPP -  status characteristic Declaration
   [SPP_IDX_SPP_STATUS_CHAR]            =
   {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid, ESP_GATT_PERM_READ,
-  CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t*)&char_prop_read_notify}},
+  sizeof(uint8_t), sizeof(uint8_t), (uint8_t*)&char_prop_read_notify}},
 
   //SPP -  status characteristic Value
   [SPP_IDX_SPP_STATUS_VAL]                 =
@@ -285,7 +282,7 @@ static uint8_t find_char_and_desr_index(uint16_t handle) {
 }
 
 static bool store_wr_buffer(esp_ble_gatts_cb_param_t* p_data) {
-  temp_spp_recv_data_node_p1 = (spp_receive_data_node_t*)malloc(sizeof(spp_receive_data_node_t));
+  temp_spp_recv_data_node_p1 = static_cast<spp_receive_data_node_t*>(malloc(sizeof(spp_receive_data_node_t)));
 
   if (temp_spp_recv_data_node_p1 == NULL) {
     ESP_LOGI(GATTS_TABLE_TAG, "malloc error %s %d", __func__, __LINE__);
@@ -297,7 +294,7 @@ static bool store_wr_buffer(esp_ble_gatts_cb_param_t* p_data) {
   temp_spp_recv_data_node_p1->len = p_data->write.len;
   SppRecvDataBuff.buff_size += p_data->write.len;
   temp_spp_recv_data_node_p1->next_node = NULL;
-  temp_spp_recv_data_node_p1->node_buff = (uint8_t*)malloc(p_data->write.len);
+  temp_spp_recv_data_node_p1->node_buff = static_cast<uint8_t*>(malloc(p_data->write.len));
   temp_spp_recv_data_node_p2 = temp_spp_recv_data_node_p1;
   if (temp_spp_recv_data_node_p1->node_buff == NULL) {
     ESP_LOGI(GATTS_TABLE_TAG, "malloc error %s %d\n", __func__, __LINE__);
@@ -318,32 +315,6 @@ static bool store_wr_buffer(esp_ble_gatts_cb_param_t* p_data) {
   return true;
 }
 
-static void free_write_buffer(void) {
-  temp_spp_recv_data_node_p1 = SppRecvDataBuff.first_node;
-
-  while (temp_spp_recv_data_node_p1 != NULL) {
-    temp_spp_recv_data_node_p2 = temp_spp_recv_data_node_p1->next_node;
-    if (temp_spp_recv_data_node_p1->node_buff) {
-      free(temp_spp_recv_data_node_p1->node_buff);
-    }
-    free(temp_spp_recv_data_node_p1);
-    temp_spp_recv_data_node_p1 = temp_spp_recv_data_node_p2;
-  }
-
-  SppRecvDataBuff.node_num = 0;
-  SppRecvDataBuff.buff_size = 0;
-  SppRecvDataBuff.first_node = NULL;
-}
-
-static void print_write_buffer(void) {
-  temp_spp_recv_data_node_p1 = SppRecvDataBuff.first_node;
-
-  while (temp_spp_recv_data_node_p1 != NULL) {
-    uart_write_bytes(UART_NUM_0, (char*)(temp_spp_recv_data_node_p1->node_buff), temp_spp_recv_data_node_p1->len);
-    temp_spp_recv_data_node_p1 = temp_spp_recv_data_node_p1->next_node;
-  }
-}
-
 
 void spp_cmd_task(void* arg) {
   uint8_t* cmd_id;
@@ -351,7 +322,7 @@ void spp_cmd_task(void* arg) {
   while (true) {
     vTaskDelay(50 / portTICK_PERIOD_MS);
     if(xQueueReceive(cmd_cmd_queue, &cmd_id, portMAX_DELAY)) {
-      ESP_LOG_BUFFER_CHAR(GATTS_TABLE_TAG, (char*)(cmd_id), strlen((char*)cmd_id));
+      ESP_LOG_BUFFER_CHAR(GATTS_TABLE_TAG, reinterpret_cast<char*>(cmd_id), strlen(reinterpret_cast<char*>(cmd_id)));
       free(cmd_id);
     }
   }
@@ -389,7 +360,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
   esp_ble_gatts_cb_param_t* p_data = param;
   uint8_t res = 0xff;
 
-  ESP_LOGI(GATTS_TABLE_TAG, "event = %x",event);
+  ESP_LOGI(GATTS_TABLE_TAG, "event = 0x%x",event);
   switch (event) {
     case ESP_GATTS_REG_EVT:
       ESP_LOGI(GATTS_TABLE_TAG, "%s %d", __func__, __LINE__);
@@ -411,51 +382,47 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
 
     case ESP_GATTS_WRITE_EVT: {
       res = find_char_and_desr_index(p_data->write.handle);
-        if (p_data->write.is_prep == false) {
-          ESP_LOGI(GATTS_TABLE_TAG, "ESP_GATTS_WRITE_EVT : handle = %d", res);
-          if (res == SPP_IDX_SPP_COMMAND_VAL) {
-            uint8_t* spp_cmd_buff = NULL;
-            spp_cmd_buff = (uint8_t*)malloc((spp_mtu_size - 3) * sizeof(uint8_t));
-            if (spp_cmd_buff == NULL) {
-              ESP_LOGE(GATTS_TABLE_TAG, "%s malloc failed", __func__);
-              break;
-            }
-            memset(spp_cmd_buff, 0x0, spp_mtu_size - 3);
-            memcpy(spp_cmd_buff, p_data->write.value, p_data->write.len);
-            xQueueSend(cmd_cmd_queue, &spp_cmd_buff, 10 / portTICK_PERIOD_MS);
+      if (p_data->write.is_prep == false) {
+        ESP_LOGI(GATTS_TABLE_TAG, "ESP_GATTS_WRITE_EVT : handle = %d", res);
+        if (res == SPP_IDX_SPP_COMMAND_VAL) {
+          uint8_t* spp_cmd_buff = NULL;
+          spp_cmd_buff = static_cast<uint8_t*>(calloc(spp_mtu_size - 3, sizeof(uint8_t)));
+          if (spp_cmd_buff == NULL) {
+            ESP_LOGE(GATTS_TABLE_TAG, "%s malloc failed", __func__);
+            break;
           }
-          else if (res == SPP_IDX_SPP_DATA_NTF_CFG) {
-              if ((p_data->write.len == 2) && (p_data->write.value[0] == 0x01) && (p_data->write.value[1] == 0x00)) {
-                enable_data_ntf = true;
-              }
-              else if ((p_data->write.len == 2) && (p_data->write.value[0] == 0x00) && (p_data->write.value[1] == 0x00)) {
-                enable_data_ntf = false;
-              }
+          memset(spp_cmd_buff, 0x0, spp_mtu_size - 3);
+          memcpy(spp_cmd_buff, p_data->write.value, p_data->write.len);
+          xQueueSend(cmd_cmd_queue, &spp_cmd_buff, 10 / portTICK_PERIOD_MS);
+        }
+        else if (res == SPP_IDX_SPP_DATA_NTF_CFG) {
+          if ((p_data->write.len == 2) && (p_data->write.value[0] == 0x01) && (p_data->write.value[1] == 0x00)) {
+            enable_data_ntf = true;
           }
-          else if (res == SPP_IDX_SPP_DATA_RECV_VAL) {
+          else if ((p_data->write.len == 2) && (p_data->write.value[0] == 0x00) && (p_data->write.value[1] == 0x00)) {
+            enable_data_ntf = false;
+          }
+        }
+        else if (res == SPP_IDX_SPP_DATA_RECV_VAL) {
 #ifdef SPP_DEBUG_MODE
-            ESP_LOG_BUFFER_CHAR(GATTS_TABLE_TAG, (char*)(p_data->write.value), p_data->write.len);
+          ESP_LOG_BUFFER_CHAR(GATTS_TABLE_TAG, (char*)(p_data->write.value), p_data->write.len);
 #else
-            uart_write_bytes(UART_NUM_0, (char*)(p_data->write.value), p_data->write.len);
+          uart_write_bytes(UART_NUM_0, (char*)(p_data->write.value), p_data->write.len);
 #endif
-          }
-          else{
-              //TODO:
-          }
         }
-        else if ((p_data->write.is_prep == true) && (res == SPP_IDX_SPP_DATA_RECV_VAL)) {
-          ESP_LOGI(GATTS_TABLE_TAG, "ESP_GATTS_PREP_WRITE_EVT : handle = %d", res);
-          store_wr_buffer(p_data);
+        else{
+          //TODO:
         }
+      }
+      else if ((p_data->write.is_prep == true) && (res == SPP_IDX_SPP_DATA_RECV_VAL)) {
+        ESP_LOGI(GATTS_TABLE_TAG, "ESP_GATTS_PREP_WRITE_EVT : handle = %d", res);
+        store_wr_buffer(p_data);
+      }
       break;
     }
 
     case ESP_GATTS_EXEC_WRITE_EVT: {
       ESP_LOGI(GATTS_TABLE_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
-      if (p_data->exec_write.exec_write_flag) {
-        print_write_buffer();
-        free_write_buffer();
-      }
       break;
     }
 
