@@ -5,25 +5,25 @@
 #define BLUETOOTH_HPP
 
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <string>
 #include <inttypes.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+
 #include "esp_system.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
-#include "esp_bt.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
+
+#include "esp_bt.h"
 #include "esp_gap_ble_api.h"
 #include "esp_gatts_api.h"
 #include "esp_bt_defs.h"
 #include "esp_bt_main.h"
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 
 
 namespace ble {
@@ -67,7 +67,7 @@ static uint8_t ext_adv_raw_data[] = {
 };
 
 static esp_ble_gap_ext_adv_t ext_adv[1] = {
-    [0] = {EXT_ADV_HANDLE, EXT_ADV_DURATION, EXT_ADV_MAX_EVENTS},
+    [0] = { EXT_ADV_HANDLE, EXT_ADV_DURATION, EXT_ADV_MAX_EVENTS },
 };
 
 esp_ble_gap_ext_adv_params_t ext_adv_params_2M = {
@@ -111,19 +111,18 @@ static struct gatts_profile_inst heart_rate_profile_tab[HEART_PROFILE_NUM] = {
 };
 
 /* Service */
-static const uint16_t GATTS_SERVICE_UUID_TEST      = 0x00FF;
-static const uint16_t GATTS_CHAR_UUID_TEST_C       = 0xFF01;
+static const uint16_t GATTS_SERVICE_UUID_TEST = 0x00FF;
+static const uint16_t GATTS_CHAR_UUID_TEST_C = 0xFF01;
 
-static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
-static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
+static const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
+static const uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
-static const uint8_t char_prop_read                =  ESP_GATT_CHAR_PROP_BIT_READ;
-static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRITE;
-static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-static const uint8_t heart_measurement_ccc[2]      = {0x00, 0x00};
-static const uint8_t char_value[4]                 = {0x11, 0x22, 0x33, 0x44};
-#define CHAR_DECLARATION_SIZE       (sizeof(uint8_t))
-#define SVC_INST_ID                 0
+static const uint8_t char_prop_read =  ESP_GATT_CHAR_PROP_BIT_READ;
+static const uint8_t char_prop_write = ESP_GATT_CHAR_PROP_BIT_WRITE;
+static const uint8_t char_prop_read_write_notify = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+static const uint8_t heart_measurement_ccc[2] = { 0x00, 0x00 };
+static const uint8_t char_value[4] = { 0x11, 0x22, 0x33, 0x44 };
+#define SVC_INST_ID 0
 
 
 /* Full Database Description - Used to add attributes into the database */
@@ -136,7 +135,7 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] = {
 
   [IDX_CHAR_C] = {
     { ESP_GATT_AUTO_RSP },
-    { ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid, ESP_GATT_PERM_READ, CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t*)&char_prop_write }
+    { ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid, ESP_GATT_PERM_READ, sizeof(uint8_t), sizeof(uint8_t), (uint8_t*)&char_prop_write }
   },
 
   /* Characteristic Value */
@@ -146,102 +145,91 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] = {
   },
 };
 
-static char *esp_key_type_to_str(esp_ble_key_type_t key_type) {
-   char *key_str = NULL;
-   switch(key_type) {
+static std::string esp_key_type_to_str(esp_ble_key_type_t key_type) {
+  switch (key_type) {
     case ESP_LE_KEY_NONE:
-        key_str = "ESP_LE_KEY_NONE";
-        break;
+      return "ESP_LE_KEY_NONE";
+
     case ESP_LE_KEY_PENC:
-        key_str = "ESP_LE_KEY_PENC";
-        break;
+      return "ESP_LE_KEY_PENC";
+
     case ESP_LE_KEY_PID:
-        key_str = "ESP_LE_KEY_PID";
-        break;
+      return "ESP_LE_KEY_PID";
+
     case ESP_LE_KEY_PCSRK:
-        key_str = "ESP_LE_KEY_PCSRK";
-        break;
+      return "ESP_LE_KEY_PCSRK";
+
     case ESP_LE_KEY_PLK:
-        key_str = "ESP_LE_KEY_PLK";
-        break;
+      return "ESP_LE_KEY_PLK";
+
     case ESP_LE_KEY_LLK:
-        key_str = "ESP_LE_KEY_LLK";
-        break;
+      return "ESP_LE_KEY_LLK";
+
     case ESP_LE_KEY_LENC:
-        key_str = "ESP_LE_KEY_LENC";
-        break;
+      return "ESP_LE_KEY_LENC";
+
     case ESP_LE_KEY_LID:
-        key_str = "ESP_LE_KEY_LID";
-        break;
+      return "ESP_LE_KEY_LID";
+
     case ESP_LE_KEY_LCSRK:
-        key_str = "ESP_LE_KEY_LCSRK";
-        break;
+      return "ESP_LE_KEY_LCSRK";
+
     default:
-        key_str = "INVALID BLE KEY TYPE";
-        break;
-
-   }
-
-   return key_str;
+      return "INVALID BLE KEY TYPE";
+  }
 }
 
-static char *esp_auth_req_to_str(esp_ble_auth_req_t auth_req)
-{
-   char *auth_str = NULL;
-   switch(auth_req) {
+
+static std::string esp_auth_req_to_str(esp_ble_auth_req_t auth_req) {
+  switch (auth_req) {
     case ESP_LE_AUTH_NO_BOND:
-        auth_str = "ESP_LE_AUTH_NO_BOND";
-        break;
-    case ESP_LE_AUTH_BOND:
-        auth_str = "ESP_LE_AUTH_BOND";
-        break;
-    case ESP_LE_AUTH_REQ_MITM:
-        auth_str = "ESP_LE_AUTH_REQ_MITM";
-        break;
-    case ESP_LE_AUTH_REQ_BOND_MITM:
-        auth_str = "ESP_LE_AUTH_REQ_BOND_MITM";
-        break;
-    case ESP_LE_AUTH_REQ_SC_ONLY:
-        auth_str = "ESP_LE_AUTH_REQ_SC_ONLY";
-        break;
-    case ESP_LE_AUTH_REQ_SC_BOND:
-        auth_str = "ESP_LE_AUTH_REQ_SC_BOND";
-        break;
-    case ESP_LE_AUTH_REQ_SC_MITM:
-        auth_str = "ESP_LE_AUTH_REQ_SC_MITM";
-        break;
-    case ESP_LE_AUTH_REQ_SC_MITM_BOND:
-        auth_str = "ESP_LE_AUTH_REQ_SC_MITM_BOND";
-        break;
-    default:
-        auth_str = "INVALID BLE AUTH REQ";
-        break;
-   }
+      return "ESP_LE_AUTH_NO_BOND";
 
-   return auth_str;
+    case ESP_LE_AUTH_BOND:
+      return "ESP_LE_AUTH_BOND";
+
+    case ESP_LE_AUTH_REQ_MITM:
+      return "ESP_LE_AUTH_REQ_MITM";
+
+    case ESP_LE_AUTH_REQ_BOND_MITM:
+      return "ESP_LE_AUTH_REQ_BOND_MITM";
+
+    case ESP_LE_AUTH_REQ_SC_ONLY:
+      return "ESP_LE_AUTH_REQ_SC_ONLY";
+
+    case ESP_LE_AUTH_REQ_SC_BOND:
+      return "ESP_LE_AUTH_REQ_SC_BOND";
+
+    case ESP_LE_AUTH_REQ_SC_MITM:
+      return "ESP_LE_AUTH_REQ_SC_MITM";
+
+    case ESP_LE_AUTH_REQ_SC_MITM_BOND:
+      return "ESP_LE_AUTH_REQ_SC_MITM_BOND";
+
+    default:
+      return "INVALID BLE AUTH REQ";
+  }
 }
 
-static void show_bonded_devices(void)
-{
-    int dev_num = esp_ble_get_bond_device_num();
-    if (dev_num == 0) {
-        ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number zero\n");
-        return;
-    }
+static void show_bonded_devices() {
+  int dev_num = esp_ble_get_bond_device_num();
+  if (dev_num == 0) {
+    ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number zero\n");
+    return;
+  }
 
-    esp_ble_bond_dev_t *dev_list = (esp_ble_bond_dev_t *)malloc(sizeof(esp_ble_bond_dev_t) * dev_num);
-    if (!dev_list) {
-        ESP_LOGE(GATTS_TABLE_TAG, "malloc failed\n");
-        return;
-    }
-    esp_ble_get_bond_device_list(&dev_num, dev_list);
-    ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number %d", dev_num);
-    for (int i = 0; i < dev_num; i++) {
-        ESP_LOGI(GATTS_TABLE_TAG, "[%u] addr_type %u, addr "ESP_BD_ADDR_STR"",
-                 i, dev_list[i].bd_addr_type, ESP_BD_ADDR_HEX(dev_list[i].bd_addr));
-    }
+  esp_ble_bond_dev_t* dev_list = static_cast<esp_ble_bond_dev_t*>(calloc(dev_num, sizeof(esp_ble_bond_dev_t)));
+  if (!dev_list) {
+    ESP_LOGE(GATTS_TABLE_TAG, "malloc failed\n");
+    return;
+  }
+  esp_ble_get_bond_device_list(&dev_num, dev_list);
+  ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number %d", dev_num);
+  for (int i = 0; i < dev_num; i++) {
+      ESP_LOGI(GATTS_TABLE_TAG, "[%u] addr_type %u, addr "ESP_BD_ADDR_STR"", i, dev_list[i].bd_addr_type, ESP_BD_ADDR_HEX(dev_list[i].bd_addr));
+  }
 
-    free(dev_list);
+  free(dev_list);
 }
 
 static void __attribute__((unused)) remove_all_bonded_devices(void)
@@ -319,7 +307,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         break;
     case ESP_GAP_BLE_KEY_EVT:
         //shows the ble key info share with peer device to the user.
-        ESP_LOGI(GATTS_TABLE_TAG, "Key exchanged, key_type %s", esp_key_type_to_str(param->ble_security.ble_key.key_type));
+        ESP_LOGI(GATTS_TABLE_TAG, "Key exchanged, key_type %s", esp_key_type_to_str(param->ble_security.ble_key.key_type).c_str());
         if (param->ble_security.ble_key.key_type == ESP_LE_KEY_PID) {
             ESP_LOGI(GATTS_TABLE_TAG, "peer addr "ESP_BD_ADDR_STR"", ESP_BD_ADDR_HEX(param->ble_security.ble_key.bd_addr));
         }
@@ -332,7 +320,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         if(!param->ble_security.auth_cmpl.success) {
             ESP_LOGI(GATTS_TABLE_TAG, "Pairing failed, reason 0x%x",param->ble_security.auth_cmpl.fail_reason);
         } else {
-            ESP_LOGI(GATTS_TABLE_TAG, "Pairing successfully, auth_mode %s",esp_auth_req_to_str(param->ble_security.auth_cmpl.auth_mode));
+            ESP_LOGI(GATTS_TABLE_TAG, "Pairing successfully, auth_mode %s", esp_auth_req_to_str(param->ble_security.auth_cmpl.auth_mode).c_str());
         }
         show_bonded_devices();
         break;
