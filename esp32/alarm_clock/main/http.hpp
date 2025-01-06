@@ -120,11 +120,6 @@ std::expected<std::string, http_error> send_request(const char* tag, const std::
 void main(void* arg) {
   Requests* requests_queue = static_cast<Requests*>(arg);
 
-  ESP_ERROR_CHECK(nvs_flash_init());
-  ESP_ERROR_CHECK(esp_netif_init());
-  ESP_ERROR_CHECK(esp_event_loop_create_default());
-  ESP_ERROR_CHECK(example_connect());
-
   const char* tag = "http";
 
   const std::string server_address = "192.168.207.53";
