@@ -41,18 +41,18 @@ enum {
 
 #define GATTS_TABLE_TAG "SEC_GATTS_DEMO"
 
-#define HEART_PROFILE_NUM                         1
-#define HEART_PROFILE_APP_IDX                     0
-#define ESP_HEART_RATE_APP_ID                     0x55
-#define HEART_RATE_SVC_INST_ID                    0
-#define EXT_ADV_HANDLE                            0
-#define NUM_EXT_ADV_SET                           1
-#define EXT_ADV_DURATION                          0
-#define EXT_ADV_MAX_EVENTS                        0
-#define EXT_ADV_NAME_LEN_OFFSET                   10
-#define EXT_ADV_NAME_OFFSET                       12
+#define HEART_PROFILE_NUM 1
+#define HEART_PROFILE_APP_IDX 0
+#define ESP_HEART_RATE_APP_ID 0x55
+#define HEART_RATE_SVC_INST_ID 0
+#define EXT_ADV_HANDLE 0
+#define NUM_EXT_ADV_SET 1
+#define EXT_ADV_DURATION 0
+#define EXT_ADV_MAX_EVENTS 0
+#define EXT_ADV_NAME_LEN_OFFSET 10
+#define EXT_ADV_NAME_OFFSET 12
 
-#define GATTS_DEMO_CHAR_VAL_LEN_MAX               0x40
+#define GATTS_DEMO_CHAR_VAL_LEN_MAX 0x40
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -226,322 +226,337 @@ static void show_bonded_devices() {
   esp_ble_get_bond_device_list(&dev_num, dev_list);
   ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number %d", dev_num);
   for (int i = 0; i < dev_num; i++) {
-      ESP_LOGI(GATTS_TABLE_TAG, "[%u] addr_type %u, addr "ESP_BD_ADDR_STR"", i, dev_list[i].bd_addr_type, ESP_BD_ADDR_HEX(dev_list[i].bd_addr));
+      ESP_LOGI(GATTS_TABLE_TAG, "[%u] addr_type %u, addr %02x:%02x:%02x:%02x:%02x:%02x", i, dev_list[i].bd_addr_type, ESP_BD_ADDR_HEX(dev_list[i].bd_addr));
   }
 
   free(dev_list);
 }
 
-static void __attribute__((unused)) remove_all_bonded_devices(void)
-{
-    int dev_num = esp_ble_get_bond_device_num();
-    if (dev_num == 0) {
-        ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number zero\n");
-        return;
-    }
+static void __attribute__((unused)) remove_all_bonded_devices(void) {
+  int dev_num = esp_ble_get_bond_device_num();
+  if (dev_num == 0) {
+    ESP_LOGI(GATTS_TABLE_TAG, "Bonded devices number zero\n");
+    return;
+  }
 
-    esp_ble_bond_dev_t *dev_list = (esp_ble_bond_dev_t *)malloc(sizeof(esp_ble_bond_dev_t) * dev_num);
-    if (!dev_list) {
-        ESP_LOGE(GATTS_TABLE_TAG, "malloc failed\n");
-        return;
-    }
-    esp_ble_get_bond_device_list(&dev_num, dev_list);
-    for (int i = 0; i < dev_num; i++) {
-        esp_ble_remove_bond_device(dev_list[i].bd_addr);
-    }
+  esp_ble_bond_dev_t *dev_list = (esp_ble_bond_dev_t *)malloc(sizeof(esp_ble_bond_dev_t) * dev_num);
+  if (!dev_list) {
+    ESP_LOGE(GATTS_TABLE_TAG, "malloc failed\n");
+    return;
+  }
+  esp_ble_get_bond_device_list(&dev_num, dev_list);
+  for (int i = 0; i < dev_num; i++) {
+    esp_ble_remove_bond_device(dev_list[i].bd_addr);
+  }
 
-    free(dev_list);
+  free(dev_list);
 }
 
-static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
-{
-    switch (event) {
+static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {
+  switch (event) {
     case ESP_GAP_BLE_EXT_ADV_SET_PARAMS_COMPLETE_EVT:
-        ESP_LOGI(GATTS_TABLE_TAG,"Extended advertising params set, status %d",  param->ext_adv_set_params.status);
-        esp_ble_gap_config_ext_adv_data_raw(EXT_ADV_HANDLE,  sizeof(ext_adv_raw_data), &ext_adv_raw_data[0]);
-        break;
+      ESP_LOGI(GATTS_TABLE_TAG,"Extended advertising params set, status %d",  param->ext_adv_set_params.status);
+      esp_ble_gap_config_ext_adv_data_raw(EXT_ADV_HANDLE,  sizeof(ext_adv_raw_data), &ext_adv_raw_data[0]);
+      break;
+
     case ESP_GAP_BLE_EXT_ADV_DATA_SET_COMPLETE_EVT:
-        ESP_LOGI(GATTS_TABLE_TAG,"Extended advertising data set, status %d",  param->ext_adv_data_set.status);
-        esp_ble_gap_ext_adv_start(NUM_EXT_ADV_SET, &ext_adv[0]);
-        break;
+      ESP_LOGI(GATTS_TABLE_TAG,"Extended advertising data set, status %d",  param->ext_adv_data_set.status);
+      esp_ble_gap_ext_adv_start(NUM_EXT_ADV_SET, &ext_adv[0]);
+      break;
+
     case ESP_GAP_BLE_EXT_ADV_START_COMPLETE_EVT:
-        ESP_LOGI(GATTS_TABLE_TAG, "Extended advertising start, status %d", param->ext_adv_data_set.status);
-        break;
+      ESP_LOGI(GATTS_TABLE_TAG, "Extended advertising start, status %d", param->ext_adv_data_set.status);
+      break;
+
     case ESP_GAP_BLE_ADV_TERMINATED_EVT:
-        ESP_LOGI(GATTS_TABLE_TAG, "Extended advertising terminated, status %d", param->adv_terminate.status);
-        if(param->adv_terminate.status == 0x00) {
-            ESP_LOGI(GATTS_TABLE_TAG, "Advertising successfully ended with a connection being created");
-        }
-        break;
+      ESP_LOGI(GATTS_TABLE_TAG, "Extended advertising terminated, status %d", param->adv_terminate.status);
+      if (param->adv_terminate.status == 0x00) {
+        ESP_LOGI(GATTS_TABLE_TAG, "Advertising successfully ended with a connection being created");
+      }
+      break;
+
     case ESP_GAP_BLE_PASSKEY_REQ_EVT:                           /* passkey request event */
-        /* Call the following function to input the passkey which is displayed on the remote device */
-        ESP_LOGI(GATTS_TABLE_TAG, "Passkey request");
-        //esp_ble_passkey_reply(heart_rate_profile_tab[HEART_PROFILE_APP_IDX].remote_bda, true, 0x00);
-        break;
+      /* Call the following function to input the passkey which is displayed on the remote device */
+      ESP_LOGI(GATTS_TABLE_TAG, "Passkey request");
+      // esp_ble_passkey_reply(heart_rate_profile_tab[HEART_PROFILE_APP_IDX].remote_bda, true, 0x00);
+      break;
+
     case ESP_GAP_BLE_OOB_REQ_EVT: {
-        ESP_LOGI(GATTS_TABLE_TAG, "OOB request");
-        uint8_t tk[16] = {1}; //If you paired with OOB, both devices need to use the same tk
-        esp_ble_oob_req_reply(param->ble_security.ble_req.bd_addr, tk, sizeof(tk));
-        break;
+      ESP_LOGI(GATTS_TABLE_TAG, "OOB request");
+      uint8_t tk[16] = {1}; //If you paired with OOB, both devices need to use the same tk
+      esp_ble_oob_req_reply(param->ble_security.ble_req.bd_addr, tk, sizeof(tk));
+      break;
     }
+
     case ESP_GAP_BLE_LOCAL_IR_EVT:                               /* BLE local IR event */
-        ESP_LOGI(GATTS_TABLE_TAG, "Local identity root");
-        break;
+      ESP_LOGI(GATTS_TABLE_TAG, "Local identity root");
+      break;
+
     case ESP_GAP_BLE_LOCAL_ER_EVT:                               /* BLE local ER event */
-        ESP_LOGI(GATTS_TABLE_TAG, "Local encryption root");
-        break;
+      ESP_LOGI(GATTS_TABLE_TAG, "Local encryption root");
+      break;
+
     case ESP_GAP_BLE_NC_REQ_EVT:
-        /* The app will receive this evt when the IO has DisplayYesNO capability and the peer device IO also has DisplayYesNo capability.
-        show the passkey number to the user to confirm it with the number displayed by peer device. */
-        esp_ble_confirm_reply(param->ble_security.ble_req.bd_addr, true);
-        ESP_LOGI(GATTS_TABLE_TAG, "Numeric Comparison request, passkey %" PRIu32, param->ble_security.key_notif.passkey);
-        break;
+      /* The app will receive this evt when the IO has DisplayYesNO capability and the peer device IO also has DisplayYesNo capability.
+      show the passkey number to the user to confirm it with the number displayed by peer device. */
+      esp_ble_confirm_reply(param->ble_security.ble_req.bd_addr, true);
+      ESP_LOGI(GATTS_TABLE_TAG, "Numeric Comparison request, passkey %" PRIu32, param->ble_security.key_notif.passkey);
+      break;
+        
     case ESP_GAP_BLE_SEC_REQ_EVT:
-        /* send the positive(true) security response to the peer device to accept the security request.
-        If not accept the security request, should send the security response with negative(false) accept value*/
-        esp_ble_gap_security_rsp(param->ble_security.ble_req.bd_addr, true);
-        break;
+      /* send the positive(true) security response to the peer device to accept the security request.
+      If not accept the security request, should send the security response with negative(false) accept value*/
+      esp_ble_gap_security_rsp(param->ble_security.ble_req.bd_addr, true);
+      break;
+
     case ESP_GAP_BLE_PASSKEY_NOTIF_EVT:  ///the app will receive this evt when the IO  has Output capability and the peer device IO has Input capability.
-        ///show the passkey number to the user to input it in the peer device.
-        ESP_LOGI(GATTS_TABLE_TAG, "Passkey notify, passkey %06" PRIu32, param->ble_security.key_notif.passkey);
-        break;
+      ///show the passkey number to the user to input it in the peer device.
+      ESP_LOGI(GATTS_TABLE_TAG, "Passkey notify, passkey %06" PRIu32, param->ble_security.key_notif.passkey);
+      break;
+
     case ESP_GAP_BLE_KEY_EVT:
-        //shows the ble key info share with peer device to the user.
-        ESP_LOGI(GATTS_TABLE_TAG, "Key exchanged, key_type %s", esp_key_type_to_str(param->ble_security.ble_key.key_type).c_str());
-        if (param->ble_security.ble_key.key_type == ESP_LE_KEY_PID) {
-            ESP_LOGI(GATTS_TABLE_TAG, "peer addr "ESP_BD_ADDR_STR"", ESP_BD_ADDR_HEX(param->ble_security.ble_key.bd_addr));
-        }
-        break;
+      //shows the ble key info share with peer device to the user.
+      ESP_LOGI(GATTS_TABLE_TAG, "Key exchanged, key_type %s", esp_key_type_to_str(param->ble_security.ble_key.key_type).c_str());
+      if (param->ble_security.ble_key.key_type == ESP_LE_KEY_PID) {
+        ESP_LOGI(GATTS_TABLE_TAG, "peer addr %02x:%02x:%02x:%02x:%02x:%02x", ESP_BD_ADDR_HEX(param->ble_security.ble_key.bd_addr));
+      }
+      break;
+
     case ESP_GAP_BLE_AUTH_CMPL_EVT: {
-        esp_bd_addr_t bd_addr;
-        memcpy(bd_addr, param->ble_security.auth_cmpl.bd_addr, sizeof(esp_bd_addr_t));
-        ESP_LOGI(GATTS_TABLE_TAG, "Authentication complete, addr_type %u, addr "ESP_BD_ADDR_STR"",
-                 param->ble_security.auth_cmpl.addr_type, ESP_BD_ADDR_HEX(bd_addr));
-        if(!param->ble_security.auth_cmpl.success) {
-            ESP_LOGI(GATTS_TABLE_TAG, "Pairing failed, reason 0x%x",param->ble_security.auth_cmpl.fail_reason);
-        } else {
-            ESP_LOGI(GATTS_TABLE_TAG, "Pairing successfully, auth_mode %s", esp_auth_req_to_str(param->ble_security.auth_cmpl.auth_mode).c_str());
-        }
-        show_bonded_devices();
-        break;
+      esp_bd_addr_t bd_addr;
+      memcpy(bd_addr, param->ble_security.auth_cmpl.bd_addr, sizeof(esp_bd_addr_t));
+      ESP_LOGI(GATTS_TABLE_TAG, "Authentication complete, addr_type %u, addr %02x:%02x:%02x:%02x:%02x:%02x", param->ble_security.auth_cmpl.addr_type, ESP_BD_ADDR_HEX(bd_addr));
+      if (!param->ble_security.auth_cmpl.success) {
+        ESP_LOGI(GATTS_TABLE_TAG, "Pairing failed, reason 0x%x",param->ble_security.auth_cmpl.fail_reason);
+      }
+      else {
+        ESP_LOGI(GATTS_TABLE_TAG, "Pairing successfully, auth_mode %s", esp_auth_req_to_str(param->ble_security.auth_cmpl.auth_mode).c_str());
+      }
+      show_bonded_devices();
+      break;
     }
+
     case ESP_GAP_BLE_REMOVE_BOND_DEV_COMPLETE_EVT: {
-        ESP_LOGD(GATTS_TABLE_TAG, "Bond device remove, status %d, device "ESP_BD_ADDR_STR"",
-                 param->remove_bond_dev_cmpl.status, ESP_BD_ADDR_HEX(param->remove_bond_dev_cmpl.bd_addr));
-        break;
+      ESP_LOGD(GATTS_TABLE_TAG, "Bond device remove, status %d, device %02x:%02x:%02x:%02x:%02x:%02x",
+        param->remove_bond_dev_cmpl.status,
+        ESP_BD_ADDR_HEX(param->remove_bond_dev_cmpl.bd_addr)
+      );
+      break;
     }
+
     case ESP_GAP_BLE_SET_LOCAL_PRIVACY_COMPLETE_EVT:
-        ESP_LOGI(GATTS_TABLE_TAG, "Local privacy config, status %x", param->local_privacy_cmpl.status);
-        esp_ble_gap_ext_adv_set_params(EXT_ADV_HANDLE, &ext_adv_params_2M);
-        break;
+      ESP_LOGI(GATTS_TABLE_TAG, "Local privacy config, status 0x%x", param->local_privacy_cmpl.status);
+      esp_ble_gap_ext_adv_set_params(EXT_ADV_HANDLE, &ext_adv_params_2M);
+      break;
+
     case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
-         ESP_LOGI(GATTS_TABLE_TAG, "Connection params update, status %d, conn_int %d, latency %d, timeout %d",
-                  param->update_conn_params.status,
-                  param->update_conn_params.conn_int,
-                  param->update_conn_params.latency,
-                  param->update_conn_params.timeout);
-        break;
+      ESP_LOGI(GATTS_TABLE_TAG, "Connection params update, status %d, conn_int %d, latency %d, timeout %d",
+        param->update_conn_params.status,
+        param->update_conn_params.conn_int,
+        param->update_conn_params.latency,
+        param->update_conn_params.timeout
+      );
+      break;
+
     default:
-        break;
-    }
+      break;
+  }
 }
 
-static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
-                                        esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
-{
-    switch (event) {
-        case ESP_GATTS_REG_EVT:
-            ESP_LOGI(GATTS_TABLE_TAG, "GATT server register, status %d", param->reg.status);
-            //generate a resolvable random address
-            esp_ble_gap_config_local_privacy(true);
-            esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, HRS_IDX_NB, SVC_INST_ID);
-            break;
-        case ESP_GATTS_READ_EVT:
-            ESP_LOGI(GATTS_TABLE_TAG, "Characteristic read");
-            break;
-        case ESP_GATTS_WRITE_EVT:
-            ESP_LOGI(GATTS_TABLE_TAG, "Characteristic write, value ");
-            ESP_LOG_BUFFER_HEX(GATTS_TABLE_TAG, param->write.value, param->write.len);
-            break;
-        case ESP_GATTS_EXEC_WRITE_EVT:
-            break;
-        case ESP_GATTS_MTU_EVT:
-            break;
-        case ESP_GATTS_CONF_EVT:
-            break;
-        case ESP_GATTS_UNREG_EVT:
-            break;
-        case ESP_GATTS_DELETE_EVT:
-            break;
-        case ESP_GATTS_START_EVT:
-            break;
-        case ESP_GATTS_STOP_EVT:
-            break;
-        case ESP_GATTS_CONNECT_EVT:
-            ESP_LOGI(GATTS_TABLE_TAG, "Connected, conn_id %u, remote "ESP_BD_ADDR_STR"",
-                     param->connect.conn_id, ESP_BD_ADDR_HEX(param->connect.remote_bda));
-            /* start security connect with peer device when receive the connect event sent by the master */
-            esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
-            break;
-        case ESP_GATTS_DISCONNECT_EVT:
-            ESP_LOGI(GATTS_TABLE_TAG, "Disconnected, remote "ESP_BD_ADDR_STR", reason 0x%x",
-                     ESP_BD_ADDR_HEX(param->disconnect.remote_bda), param->disconnect.reason);
-            /* start advertising again when missing the connect */
-            esp_ble_gap_ext_adv_start(NUM_EXT_ADV_SET, &ext_adv[0]);
-            break;
-        case ESP_GATTS_OPEN_EVT:
-            break;
-        case ESP_GATTS_CANCEL_OPEN_EVT:
-            break;
-        case ESP_GATTS_CLOSE_EVT:
-            break;
-        case ESP_GATTS_LISTEN_EVT:
-            break;
-        case ESP_GATTS_CONGEST_EVT:
-            break;
-        case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
-            if (param->create.status == ESP_GATT_OK){
-                if(param->add_attr_tab.num_handle == HRS_IDX_NB) {
-                    ESP_LOGI(GATTS_TABLE_TAG, "Attribute table create successfully, num_handle %x", param->add_attr_tab.num_handle);
-                    memcpy(profile_handle_table, param->add_attr_tab.handles,
-                    sizeof(profile_handle_table));
-                    esp_ble_gatts_start_service(profile_handle_table[IDX_SVC]);
-                }else{
-                    ESP_LOGE(GATTS_TABLE_TAG, "Attribute table create abnormally, num_handle (%d) doesn't equal to HRS_IDX_NB(%d)",
-                         param->add_attr_tab.num_handle, HRS_IDX_NB);
-                }
-            }else{
-                ESP_LOGE(GATTS_TABLE_TAG, "Attribute table create failed, status %x", param->create.status);
-            }
-            break;
+static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t* param) {
+  switch (event) {
+    case ESP_GATTS_REG_EVT:
+      ESP_LOGI(GATTS_TABLE_TAG, "GATT server register, status %d", param->reg.status);
+      //generate a resolvable random address
+      esp_ble_gap_config_local_privacy(true);
+      esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, HRS_IDX_NB, SVC_INST_ID);
+      break;
+
+    case ESP_GATTS_READ_EVT:
+      ESP_LOGI(GATTS_TABLE_TAG, "Characteristic read");
+      break;
+
+    case ESP_GATTS_WRITE_EVT:
+      ESP_LOGI(GATTS_TABLE_TAG, "Characteristic write, value ");
+      ESP_LOG_BUFFER_HEX(GATTS_TABLE_TAG, param->write.value, param->write.len);
+      break;
+
+    case ESP_GATTS_EXEC_WRITE_EVT:
+      break;
+    case ESP_GATTS_MTU_EVT:
+      break;
+    case ESP_GATTS_CONF_EVT:
+      break;
+    case ESP_GATTS_UNREG_EVT:
+      break;
+    case ESP_GATTS_DELETE_EVT:
+      break;
+    case ESP_GATTS_START_EVT:
+      break;
+    case ESP_GATTS_STOP_EVT:
+      break;
+
+    case ESP_GATTS_CONNECT_EVT:
+      ESP_LOGI(GATTS_TABLE_TAG, "Connected, conn_id %u, remote %02x:%02x:%02x:%02x:%02x:%02x", param->connect.conn_id, ESP_BD_ADDR_HEX(param->connect.remote_bda));
+      /* start security connect with peer device when receive the connect event sent by the master */
+      esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
+      break;
+
+    case ESP_GATTS_DISCONNECT_EVT:
+      ESP_LOGI(GATTS_TABLE_TAG, "Disconnected, remote %02x:%02x:%02x:%02x:%02x:%02x, reason 0x%x", ESP_BD_ADDR_HEX(param->disconnect.remote_bda), param->disconnect.reason);
+      /* start advertising again when missing the connect */
+      esp_ble_gap_ext_adv_start(NUM_EXT_ADV_SET, &ext_adv[0]);
+      break;
+
+    case ESP_GATTS_OPEN_EVT:
+      break;
+    case ESP_GATTS_CANCEL_OPEN_EVT:
+      break;
+    case ESP_GATTS_CLOSE_EVT:
+      break;
+    case ESP_GATTS_LISTEN_EVT:
+      break;
+    case ESP_GATTS_CONGEST_EVT:
+      break;
+
+    case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
+      if (param->create.status == ESP_GATT_OK) {
+        if (param->add_attr_tab.num_handle == HRS_IDX_NB) {
+          ESP_LOGI(GATTS_TABLE_TAG, "Attribute table create successfully, num_handle 0x%x", param->add_attr_tab.num_handle);
+          memcpy(profile_handle_table, param->add_attr_tab.handles,
+          sizeof(profile_handle_table));
+          esp_ble_gatts_start_service(profile_handle_table[IDX_SVC]);
         }
-        default:
-           break;
+        else {
+          ESP_LOGE(GATTS_TABLE_TAG, "Attribute table create abnormally, num_handle (%d) doesn't equal to HRS_IDX_NB(%d)", param->add_attr_tab.num_handle, HRS_IDX_NB);
+        }
+      }
+      else {
+        ESP_LOGE(GATTS_TABLE_TAG, "Attribute table create failed, status 0x%x", param->create.status);
+      }
+      break;
     }
+
+    default:
+      break;
+  }
 }
 
 
-static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
-                                esp_ble_gatts_cb_param_t *param)
-{
-    /* If event is register event, store the gatts_if for each profile */
-    if (event == ESP_GATTS_REG_EVT) {
-        if (param->reg.status == ESP_GATT_OK) {
-            heart_rate_profile_tab[HEART_PROFILE_APP_IDX].gatts_if = gatts_if;
-        } else {
-            ESP_LOGI(GATTS_TABLE_TAG, "Reg app failed, app_id %04x, status %d",
-                    param->reg.app_id,
-                    param->reg.status);
-            return;
-        }
+static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t* param) {
+  /* If event is register event, store the gatts_if for each profile */
+  if (event == ESP_GATTS_REG_EVT) {
+    if (param->reg.status == ESP_GATT_OK) {
+      heart_rate_profile_tab[HEART_PROFILE_APP_IDX].gatts_if = gatts_if;
     }
+    else {
+      ESP_LOGI(GATTS_TABLE_TAG, "Reg app failed, app_id %04x, status %d", param->reg.app_id, param->reg.status);
+      return;
+    }
+  }
 
-    do {
-        int idx;
-        for (idx = 0; idx < HEART_PROFILE_NUM; idx++) {
-            if (gatts_if == ESP_GATT_IF_NONE || /* ESP_GATT_IF_NONE, not specify a certain gatt_if, need to call every profile cb function */
-                    gatts_if == heart_rate_profile_tab[idx].gatts_if) {
-                if (heart_rate_profile_tab[idx].gatts_cb) {
-                    heart_rate_profile_tab[idx].gatts_cb(event, gatts_if, param);
-                }
-            }
-        }
-    } while (0);
+  for (int idx = 0; idx < HEART_PROFILE_NUM; idx++) {
+    if (gatts_if == ESP_GATT_IF_NONE || gatts_if == heart_rate_profile_tab[idx].gatts_if) { /* ESP_GATT_IF_NONE, not specify a certain gatt_if, need to call every profile cb function */
+      if (heart_rate_profile_tab[idx].gatts_cb) {
+        heart_rate_profile_tab[idx].gatts_cb(event, gatts_if, param);
+      }
+    }
+  }
 }
 
 void main(void* arg) {
-    esp_err_t ret;
+  esp_err_t ret;
 
-    // Initialize NVS.
+  // Initialize NVS.
+  ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
     ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK( ret );
+  }
+  ESP_ERROR_CHECK( ret );
 
-    #if CONFIG_EXAMPLE_CI_PIPELINE_ID
-    uint8_t adv_name_len = ext_adv_raw_data[EXT_ADV_NAME_LEN_OFFSET] - 1;
-    char *adv_name = esp_bluedroid_get_example_name();
-    adv_name_len = MIN(adv_name_len, strlen(adv_name));
-    memcpy(&ext_adv_raw_data[EXT_ADV_NAME_OFFSET], adv_name, adv_name_len);
-    ext_adv_raw_data[EXT_ADV_NAME_LEN_OFFSET] = (adv_name_len + 1);
-    #endif
+  #if CONFIG_EXAMPLE_CI_PIPELINE_ID
+  uint8_t adv_name_len = ext_adv_raw_data[EXT_ADV_NAME_LEN_OFFSET] - 1;
+  char *adv_name = esp_bluedroid_get_example_name();
+  adv_name_len = MIN(adv_name_len, strlen(adv_name));
+  memcpy(&ext_adv_raw_data[EXT_ADV_NAME_OFFSET], adv_name, adv_name_len);
+  ext_adv_raw_data[EXT_ADV_NAME_LEN_OFFSET] = (adv_name_len + 1);
+  #endif
 
-    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
+  ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    ret = esp_bt_controller_init(&bt_cfg);
-    if (ret) {
-        ESP_LOGE(GATTS_TABLE_TAG, "%s init controller failed: %s", __func__, esp_err_to_name(ret));
-        return;
-    }
-    ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
-    if (ret) {
-        ESP_LOGE(GATTS_TABLE_TAG, "%s enable controller failed: %s", __func__, esp_err_to_name(ret));
-        return;
-    }
+  esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+  ret = esp_bt_controller_init(&bt_cfg);
+  if (ret) {
+    ESP_LOGE(GATTS_TABLE_TAG, "%s init controller failed: %s", __func__, esp_err_to_name(ret));
+    return;
+  }
+  ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
+  if (ret) {
+    ESP_LOGE(GATTS_TABLE_TAG, "%s enable controller failed: %s", __func__, esp_err_to_name(ret));
+    return;
+  }
 
-    ESP_LOGI(GATTS_TABLE_TAG, "%s init bluetooth", __func__);
+  ESP_LOGI(GATTS_TABLE_TAG, "%s init bluetooth", __func__);
 
-    ret = esp_bluedroid_init();
-    if (ret) {
-        ESP_LOGE(GATTS_TABLE_TAG, "%s init bluetooth failed: %s", __func__, esp_err_to_name(ret));
-        return;
-    }
-    ret = esp_bluedroid_enable();
-    if (ret) {
-        ESP_LOGE(GATTS_TABLE_TAG, "%s enable bluetooth failed: %s", __func__, esp_err_to_name(ret));
-        return;
-    }
+  ret = esp_bluedroid_init();
+  if (ret) {
+    ESP_LOGE(GATTS_TABLE_TAG, "%s init bluetooth failed: %s", __func__, esp_err_to_name(ret));
+    return;
+  }
+  ret = esp_bluedroid_enable();
+  if (ret) {
+    ESP_LOGE(GATTS_TABLE_TAG, "%s enable bluetooth failed: %s", __func__, esp_err_to_name(ret));
+    return;
+  }
 
-    ret = esp_ble_gatts_register_callback(gatts_event_handler);
-    if (ret){
-        ESP_LOGE(GATTS_TABLE_TAG, "gatts register error, error code = %x", ret);
-        return;
-    }
-    ret = esp_ble_gap_register_callback(gap_event_handler);
-    if (ret){
-        ESP_LOGE(GATTS_TABLE_TAG, "gap register error, error code = %x", ret);
-        return;
-    }
-    ret = esp_ble_gatts_app_register(ESP_HEART_RATE_APP_ID);
-    if (ret){
-        ESP_LOGE(GATTS_TABLE_TAG, "gatts app register error, error code = %x", ret);
-        return;
-    }
+  ret = esp_ble_gatts_register_callback(gatts_event_handler);
+  if (ret) {
+    ESP_LOGE(GATTS_TABLE_TAG, "gatts register error, error code = %x", ret);
+    return;
+  }
+  ret = esp_ble_gap_register_callback(gap_event_handler);
+  if (ret) {
+    ESP_LOGE(GATTS_TABLE_TAG, "gap register error, error code = %x", ret);
+    return;
+  }
+  ret = esp_ble_gatts_app_register(ESP_HEART_RATE_APP_ID);
+  if (ret) {
+    ESP_LOGE(GATTS_TABLE_TAG, "gatts app register error, error code = %x", ret);
+    return;
+  }
 
-    /* set the security iocap & auth_req & key size & init key response key parameters to the stack*/
-    esp_ble_auth_req_t auth_req = ESP_LE_AUTH_REQ_SC_MITM_BOND;     //bonding with peer device after authentication
-    esp_ble_io_cap_t iocap = ESP_IO_CAP_NONE;           //set the IO capability to No output No input
-    uint8_t key_size = 16;      //the key size should be 7~16 bytes
-    uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
-    uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
-    //set static passkey
-    uint32_t passkey = 123456;
-    uint8_t auth_option = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_DISABLE;
-    uint8_t oob_support = ESP_BLE_OOB_DISABLE;
-    esp_ble_gap_set_security_param(ESP_BLE_SM_SET_STATIC_PASSKEY, &passkey, sizeof(uint32_t));
-    esp_ble_gap_set_security_param(ESP_BLE_SM_AUTHEN_REQ_MODE, &auth_req, sizeof(uint8_t));
-    esp_ble_gap_set_security_param(ESP_BLE_SM_IOCAP_MODE, &iocap, sizeof(uint8_t));
-    esp_ble_gap_set_security_param(ESP_BLE_SM_MAX_KEY_SIZE, &key_size, sizeof(uint8_t));
-    esp_ble_gap_set_security_param(ESP_BLE_SM_ONLY_ACCEPT_SPECIFIED_SEC_AUTH, &auth_option, sizeof(uint8_t));
-    esp_ble_gap_set_security_param(ESP_BLE_SM_OOB_SUPPORT, &oob_support, sizeof(uint8_t));
-    /* If your BLE device acts as a Slave, the init_key means you hope which types of key of the master should distribute to you,
-    and the response key means which key you can distribute to the master;
-    If your BLE device acts as a master, the response key means you hope which types of key of the slave should distribute to you,
-    and the init key means which key you can distribute to the slave. */
-    esp_ble_gap_set_security_param(ESP_BLE_SM_SET_INIT_KEY, &init_key, sizeof(uint8_t));
-    esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(uint8_t));
+  /* set the security iocap & auth_req & key size & init key response key parameters to the stack*/
+  esp_ble_auth_req_t auth_req = ESP_LE_AUTH_REQ_SC_MITM_BOND;     //bonding with peer device after authentication
+  esp_ble_io_cap_t iocap = ESP_IO_CAP_NONE;           //set the IO capability to No output No input
+  uint8_t key_size = 16;      //the key size should be 7~16 bytes
+  uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+  uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+  //set static passkey
+  uint32_t passkey = 123456;
+  uint8_t auth_option = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_DISABLE;
+  uint8_t oob_support = ESP_BLE_OOB_DISABLE;
+  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_STATIC_PASSKEY, &passkey, sizeof(uint32_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_AUTHEN_REQ_MODE, &auth_req, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_IOCAP_MODE, &iocap, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_MAX_KEY_SIZE, &key_size, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_ONLY_ACCEPT_SPECIFIED_SEC_AUTH, &auth_option, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_OOB_SUPPORT, &oob_support, sizeof(uint8_t));
+  /* If your BLE device acts as a Slave, the init_key means you hope which types of key of the master should distribute to you,
+  and the response key means which key you can distribute to the master;
+  If your BLE device acts as a master, the response key means you hope which types of key of the slave should distribute to you,
+  and the init key means which key you can distribute to the slave. */
+  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_INIT_KEY, &init_key, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(uint8_t));
 
-    while (true) vTaskDelay(portMAX_DELAY);
+  while (true) vTaskDelay(portMAX_DELAY);
 
-    /* Just show how to clear all the bonded devices
-     * Delay 30s, clear all the bonded devices
-     *
-     * vTaskDelay(30000 / portTICK_PERIOD_MS);
-     * remove_all_bonded_devices();
-     */
+  /* Just show how to clear all the bonded devices
+    * Delay 30s, clear all the bonded devices
+    *
+    * vTaskDelay(30000 / portTICK_PERIOD_MS);
+    * remove_all_bonded_devices();
+    */
 }
 
 
