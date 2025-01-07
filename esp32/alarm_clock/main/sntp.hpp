@@ -35,7 +35,7 @@ void time_sync_notification_cb(struct timeval *tv) {
 }
 
 
-void main() {
+void init() {
   while (true) {
     time_t now;
     struct tm timeinfo;
