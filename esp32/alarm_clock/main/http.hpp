@@ -30,8 +30,6 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-#include "protocol_examples_common.h"
-
 #include "channels.hpp"
 
 
@@ -57,7 +55,7 @@ std::string socket_read(int sock);
 std::expected<std::string, http_error> send_request(const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data);
 
 
-constexpr char* tag = "http";
+const char* tag = "http";
 
 
 void main(void* arg) {
