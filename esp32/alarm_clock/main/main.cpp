@@ -23,7 +23,7 @@ extern "C" void app_main(void) {
   ESP_ERROR_CHECK(esp_event_loop_create_default());
   ESP_ERROR_CHECK(example_connect());
 
-  // sntp::init();
+  sntp::init();
   channels::init();
 
   TaskHandle_t http_task_handle;
@@ -36,8 +36,8 @@ extern "C" void app_main(void) {
   xTaskCreate(cam::main, "cam::main", 8096, nullptr, 1, &cam_task_handle);
   ESP_LOGI(tag, "Created camera task");
 
-  // xTaskCreate(ble::main, "ble::main", 8096, nullptr, 1, &ble_task_handle);
-  // ESP_LOGI(tag, "Created bluetooth task");
+  xTaskCreate(ble::main, "ble::main", 8096, nullptr, 1, &ble_task_handle);
+  ESP_LOGI(tag, "Created bluetooth task");
   
   while (true) vTaskDelay(portMAX_DELAY);
 

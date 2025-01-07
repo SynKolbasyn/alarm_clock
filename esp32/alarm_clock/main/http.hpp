@@ -47,19 +47,20 @@ enum http_error {
 };
 
 
-in_addr* dns_lookup(const char* tag, addrinfo** dns_result, const std::string& server_address, const std::string& server_port);
-int create_socket(const char* tag, addrinfo* dns_result);
-bool socket_connect(const char* tag, int sock, addrinfo* dns_result);
+addrinfo* dns_lookup(const std::string& server_address, const std::string& server_port);
+int create_socket(addrinfo* dns_result);
+bool socket_connect(int sock, addrinfo* dns_result);
 std::string create_request(const std::string& host, const std::vector<std::uint8_t>& data);
-bool socket_write(const char* tag, int sock, const std::string& host, const std::vector<std::uint8_t>& request);
-bool set_socket_timeout(const char* tag, int sock);
-std::string socket_read(const char* tag, int sock);
-std::expected<std::string, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data);
+bool socket_write(int sock, const std::string& host, const std::vector<std::uint8_t>& request);
+bool set_socket_timeout(int sock);
+std::string socket_read(int sock);
+std::expected<std::string, http_error> send_request(const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data);
+
+
+constexpr char* tag = "http";
 
 
 void main(void* arg) {
-  const char* tag = "http";
-
   const std::string server_address = "192.168.116.44";
   const std::string server_port = "8000";
 
@@ -68,48 +69,48 @@ void main(void* arg) {
     if (xQueueReceive(channels::image_channel, static_cast<void*>(&image), portMAX_DELAY) != pdTRUE) continue;
     std::vector<std::uint8_t> data(image.buffer, image.buffer + image.size);
     delete[] image.buffer;
-    std::expected<std::string, http_error> request_result = send_request(tag, server_address, server_port, data);
+    std::expected<std::string, http_error> request_result = send_request(server_address, server_port, data);
     if (request_result.has_value()) ESP_LOGI(tag, "request result size: \n%zu\n\n%s", request_result->size(), request_result->c_str());
   }
 }
 
 
-std::expected<std::string, http_error> send_request(const char* tag, const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data) {
-  addrinfo* dns_result;
-  in_addr* addr = dns_lookup(tag, &dns_result, server_address, server_port);
-  if (addr == nullptr) return std::unexpected(dns_lookup_failed);
+std::expected<std::string, http_error> send_request(const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data) {
+  addrinfo* dns_result = dns_lookup(server_address, server_port);
+  if (dns_result == nullptr) return std::unexpected(dns_lookup_failed);
 
-  int sock = create_socket(tag, dns_result);
+  int sock = create_socket(dns_result);
   if (sock < 0) return std::unexpected(allocate_socket_failed);
 
-  if (!socket_connect(tag, sock, dns_result)) return std::unexpected(socket_connect_failed);
+  if (!socket_connect(sock, dns_result)) return std::unexpected(socket_connect_failed);
 
-  if (!socket_write(tag, sock, server_address, data)) return std::unexpected(socket_send_failed);
+  if (!socket_write(sock, server_address, data)) return std::unexpected(socket_send_failed);
 
-  if (!set_socket_timeout(tag, sock)) return std::unexpected(set_socket_recv_timeout_failed);
+  if (!set_socket_timeout(sock)) return std::unexpected(set_socket_recv_timeout_failed);
 
-  return socket_read(tag, sock);
+  return socket_read(sock);
 }
 
 
-in_addr* dns_lookup(const char* tag, addrinfo** dns_result, const std::string& server_address, const std::string& server_port) {
+addrinfo* dns_lookup(const std::string& server_address, const std::string& server_port) {
+  addrinfo* dns_result;
   const addrinfo hints = {
     .ai_family = AF_INET,
     .ai_socktype = SOCK_STREAM,
   };
-  int dns_return = getaddrinfo(server_address.c_str(), server_port.c_str(), &hints, &*dns_result);
+  int dns_return = getaddrinfo(server_address.c_str(), server_port.c_str(), &hints, &dns_result);
 
-  if(dns_return != 0 || *dns_result == NULL) {
-    ESP_LOGE(tag, "DNS lookup failed | err: %d res: %p", dns_return, *dns_result);
+  if(dns_return != 0 || dns_result == NULL) {
+    ESP_LOGE(tag, "DNS lookup failed | err: %d res: %p", dns_return, dns_result);
     return nullptr;
   }
-  in_addr* addr = &((sockaddr_in*)(*dns_result)->ai_addr)->sin_addr;
+  in_addr* addr = &((sockaddr_in*)(dns_result)->ai_addr)->sin_addr;
   ESP_LOGI(tag, "DNS lookup succeeded | IP: %s", inet_ntoa(*addr));
-  return addr;
+  return dns_result;
 }
 
 
-int create_socket(const char* tag, addrinfo* dns_result) {
+int create_socket(addrinfo* dns_result) {
   int sock = socket(dns_result->ai_family, dns_result->ai_socktype, 0);
   if(sock < 0) {
     ESP_LOGE(tag, "failed to allocate socket");
@@ -121,7 +122,7 @@ int create_socket(const char* tag, addrinfo* dns_result) {
 }
 
 
-bool socket_connect(const char* tag, int sock, addrinfo* dns_result) {
+bool socket_connect(int sock, addrinfo* dns_result) {
   if(connect(sock, dns_result->ai_addr, dns_result->ai_addrlen) != 0) {
     ESP_LOGE(tag, "socket connect failed | errno: %d", errno);
     close(sock);
@@ -147,7 +148,7 @@ std::string create_request(const std::string& host, const std::vector<std::uint8
 }
 
 
-bool socket_write(const char* tag, int sock, const std::string& host, const std::vector<std::uint8_t>& request) {
+bool socket_write(int sock, const std::string& host, const std::vector<std::uint8_t>& request) {
   std::string http_request = create_request(host, request);
   if (write(sock, static_cast<const void*>(http_request.c_str()), http_request.length()) < 0) {
     ESP_LOGE(tag, "socket send failed");
@@ -159,7 +160,7 @@ bool socket_write(const char* tag, int sock, const std::string& host, const std:
 }
 
 
-bool set_socket_timeout(const char* tag, int sock) {
+bool set_socket_timeout(int sock) {
   timeval receiving_timeout;
   receiving_timeout.tv_sec = 5;
   receiving_timeout.tv_usec = 0;
@@ -173,7 +174,7 @@ bool set_socket_timeout(const char* tag, int sock) {
 }
 
 
-std::string socket_read(const char* tag, int sock) {
+std::string socket_read(int sock) {
   std::string result;
 
   constexpr std::uint16_t buffer_size = 2048;
