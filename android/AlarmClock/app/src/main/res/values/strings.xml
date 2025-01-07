@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Alarm Clock</string>
+    <string name="title_activity_configure_device">ConfigureDeviceActivity</string>
+    <string name="title_activity_configure_server">ConfigureServerActivity</string>
 </resources>
