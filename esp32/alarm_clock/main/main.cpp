@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+#include "storage.hpp"
 #include "wifi.hpp"
 #include "http.hpp"
 #include "camera.hpp"
@@ -17,7 +18,7 @@
 extern "C" void app_main(void) {
   const char* tag = "main";
 
-  ESP_ERROR_CHECK(nvs_flash_init());
+  storage::init();
   ESP_ERROR_CHECK(esp_netif_init());
   ESP_ERROR_CHECK(esp_event_loop_create_default());
 

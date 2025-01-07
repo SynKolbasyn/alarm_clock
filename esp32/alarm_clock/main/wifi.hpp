@@ -199,4 +199,4 @@ bool is_our_netif(const char* prefix, esp_netif_t* netif) {
 } // namespace wifi
 
 
-#endif // WIFI_HPP
+#endif // !WIFI_HPP
