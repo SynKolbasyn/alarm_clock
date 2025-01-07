@@ -18,7 +18,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-#include "http.hpp"
+#include "channels.hpp"
 
 
 namespace cam {
@@ -28,21 +28,23 @@ esp_err_t init_camera();
 
 
 void main(void* arg) {
-  http::Requests* requests_queue = static_cast<http::Requests*>(arg);
-
   const char* tag = "cam";
 
   while (init_camera() != ESP_OK) {
     ESP_LOGE(tag, "Camera init failed");
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
   }
 
   while (true) {
     camera_fb_t* pic = esp_camera_fb_get();
 
     ESP_LOGI(tag, "Picture maked | (%d, %d): %zu bytes", pic->width, pic->height, pic->len);
-    std::vector<std::uint8_t> data(pic->buf, pic->buf + pic->len);
-    requests_queue->push(data);
+    channels::image_t image = {
+      .buffer = new std::uint8_t[pic->len],
+      .size = pic->len
+    };
+    memcpy(image.buffer, pic->buf, pic->len);
+    xQueueSend(channels::image_channel, static_cast<void*>(&image), portMAX_DELAY);
 
     esp_camera_fb_return(pic);
 

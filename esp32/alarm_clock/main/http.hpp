@@ -32,6 +32,8 @@
 
 #include "protocol_examples_common.h"
 
+#include "channels.hpp"
+
 
 namespace http {
 
@@ -45,68 +47,6 @@ enum http_error {
 };
 
 
-class Requests {
-public:
-  Requests(std::uint64_t max_len) noexcept;
-  Requests() = delete;
-  Requests(const Requests&) = delete;
-  Requests(Requests&&) = delete;
-  Requests operator=(const Requests&) = delete;
-  Requests operator=(Requests&&) = delete;
-  ~Requests() noexcept;
-
-  void push(std::vector<std::uint8_t> request) noexcept;
-  std::vector<std::uint8_t> pop() noexcept;
-
-private:
-  mutable std::shared_mutex mutex;
-  std::uint64_t max_len;
-  std::queue<std::vector<std::uint8_t>> queue;
-};
-
-
-Requests::Requests(std::uint64_t max_len) noexcept {
-  this->max_len = max_len;
-}
-
-
-Requests::~Requests() noexcept {
-  
-}
-
-
-void Requests::push(std::vector<std::uint8_t> request) noexcept {
-  while (true) {
-    std::unique_lock lock { this->mutex };
-
-    if (this->queue.size() >= this->max_len) {
-      vTaskDelay(1 / portTICK_PERIOD_MS);
-      continue;
-    }
-
-    this->queue.push(request);
-    return;
-  }
-}
-
-
-std::vector<std::uint8_t> Requests::pop() noexcept {
-  while (true) {
-    std::unique_lock lock { this->mutex };
-
-    if (this->queue.empty()) {
-      vTaskDelay(1 / portTICK_PERIOD_MS);
-      continue;
-    }
-
-    std::vector<std::uint8_t> request = std::move(this->queue.front());
-    this->queue.pop();
-
-    return request;
-  }
-}
-
-
 in_addr* dns_lookup(const char* tag, addrinfo** dns_result, const std::string& server_address, const std::string& server_port);
 int create_socket(const char* tag, addrinfo* dns_result);
 bool socket_connect(const char* tag, int sock, addrinfo* dns_result);
@@ -118,20 +58,16 @@ std::expected<std::string, http_error> send_request(const char* tag, const std::
 
 
 void main(void* arg) {
-  Requests* requests_queue = static_cast<Requests*>(arg);
-
-  ESP_ERROR_CHECK(nvs_flash_init());
-  ESP_ERROR_CHECK(esp_netif_init());
-  ESP_ERROR_CHECK(esp_event_loop_create_default());
-  ESP_ERROR_CHECK(example_connect());
-
   const char* tag = "http";
 
-  const std::string server_address = "192.168.207.53";
+  const std::string server_address = "192.168.116.44";
   const std::string server_port = "8000";
 
   while (true) {
-    std::vector<std::uint8_t> data = requests_queue->pop();
+    channels::image_t image;
+    if (xQueueReceive(channels::image_channel, static_cast<void*>(&image), portMAX_DELAY) != pdTRUE) continue;
+    std::vector<std::uint8_t> data(image.buffer, image.buffer + image.size);
+    delete[] image.buffer;
     std::expected<std::string, http_error> request_result = send_request(tag, server_address, server_port, data);
     if (request_result.has_value()) ESP_LOGI(tag, "request result size: \n%zu\n\n%s", request_result->size(), request_result->c_str());
   }
