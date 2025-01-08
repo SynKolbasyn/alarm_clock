@@ -3,4 +3,5 @@
     <string name="title_activity_configure_device">ConfigureDeviceActivity</string>
     <string name="title_activity_configure_server">ConfigureServerActivity</string>
     <string name="title_activity_permissions">PermissionsActivity</string>
+    <string name="title_activity_device">DeviceActivity</string>
 </resources>

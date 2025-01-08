@@ -95,10 +95,11 @@ class ConfigureDeviceActivity : ComponentActivity() {
 }
 
 
-private fun openDeviceActivity(context: Context) {
-
+private fun openDeviceActivity(context: Context, mac: String) {
+    val intent: Intent = Intent(context, DeviceActivity::class.java)
+    intent.putExtra("mac", mac)
+    context.startActivity(intent)
 }
-
 
 
 @RequiresApi(Build.VERSION_CODES.S)
@@ -112,11 +113,10 @@ private fun MainLayout(modifier: Modifier, activity: Activity) {
 }
 
 
-
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 private fun BleDeviceCard(modifier: Modifier, activity: Activity, device: BluetoothDevice) {
-    Card(onClick = { openDeviceActivity(activity) }, modifier = modifier) {
+    Card(onClick = { openDeviceActivity(activity, device.address) }, modifier = modifier) {
         Column(modifier = modifier) {
             when {
                 ContextCompat.checkSelfPermission(activity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED -> {
