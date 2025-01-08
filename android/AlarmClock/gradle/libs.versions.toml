@@ -1,5 +1,6 @@
 [versions]
 agp = "8.7.3"
+fragmentCompose = "1.8.5"
 kotlin = "2.0.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -10,7 +11,9 @@ activityCompose = "1.9.3"
 composeBom = "2024.04.01"
 
 [libraries]
+androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-fragment-compose = { module = "androidx.fragment:fragment-compose", version.ref = "fragmentCompose" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

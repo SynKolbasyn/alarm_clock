@@ -3,10 +3,12 @@ package com.mondegrin.alarmclock
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,6 +22,7 @@ import com.mondegrin.alarmclock.ui.theme.AlarmClockTheme
 
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -34,16 +37,6 @@ class MainActivity : ComponentActivity() {
 }
 
 
-@Composable
-private fun MainLayout(modifier: Modifier = Modifier) {
-    Row(modifier = modifier) {
-        val context: Context = LocalContext.current
-        Button(onClick = { openDeviceConfigureActivity(context) }, modifier = modifier) { Text(text = "Configure device", modifier = modifier) }
-        Button(onClick = { openServerConfigureActivity(context) }, modifier = modifier) { Text(text = "Configure server", modifier = modifier) }
-    }
-}
-
-
 private fun openDeviceConfigureActivity(context: Context) {
     val intent: Intent = Intent(context, ConfigureDeviceActivity::class.java)
     context.startActivity(intent)
@@ -51,6 +44,16 @@ private fun openDeviceConfigureActivity(context: Context) {
 
 
 private fun openServerConfigureActivity(context: Context) {
-    val intent: Intent = Intent(context, ConfigureDeviceActivity::class.java)
+    val intent: Intent = Intent(context, ConfigureServerActivity::class.java)
     context.startActivity(intent)
+}
+
+
+@Composable
+private fun MainLayout(modifier: Modifier) {
+    Row(modifier = modifier) {
+        val context: Context = LocalContext.current
+        Button(onClick = { openDeviceConfigureActivity(context) }, modifier = modifier) { Text(text = "Configure device", modifier = modifier) }
+        Button(onClick = { openServerConfigureActivity(context) }, modifier = modifier) { Text(text = "Configure server", modifier = modifier) }
+    }
 }
