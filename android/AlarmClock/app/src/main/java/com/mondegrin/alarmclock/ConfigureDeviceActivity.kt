@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,8 +46,26 @@ class ConfigureDeviceActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        bleDevicesList.clear()
+
         val bluetoothManager: BluetoothManager = this.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter: BluetoothAdapter = bluetoothManager.adapter
+
+        if (!bluetoothAdapter.isEnabled) {
+            val requestBluetoothEnableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            val requestBluetoothEnable = registerForActivityResult(StartActivityForResult()) {
+                if (!bluetoothAdapter.isEnabled) {
+                    val message: Toast = Toast.makeText(this, "Please turn on Bluetooth so that the app works correctly", Toast.LENGTH_LONG)
+                    message.show()
+                    finish()
+                } else {
+                    val message: Toast = Toast.makeText(this, "Thanks for turning on Bluetooth", Toast.LENGTH_SHORT)
+                    message.show()
+                    bleDevicesList.addAll(bluetoothAdapter.bondedDevices)
+                }
+            }
+            requestBluetoothEnable.launch(requestBluetoothEnableIntent)
+        }
 
         requestPermissionLauncher = registerForActivityResult(RequestPermission()) { isGranted: Boolean ->
             if (isGranted) {
