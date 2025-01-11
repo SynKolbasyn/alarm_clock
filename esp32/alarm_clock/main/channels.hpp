@@ -22,9 +22,13 @@ typedef struct {
 constexpr UBaseType_t image_channel_len = 10;
 QueueHandle_t image_channel;
 
+const UBaseType_t server_status_channel_len = 100;
+QueueHandle_t server_status_channel;
+
 
 void init() {
   image_channel = xQueueCreate(image_channel_len, sizeof(image_t));
+  server_status_channel = xQueueCreate(server_status_channel_len, sizeof(int32_t));
 }
 
 

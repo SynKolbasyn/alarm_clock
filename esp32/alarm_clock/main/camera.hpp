@@ -24,6 +24,9 @@
 namespace cam {
 
 
+static bool do_photo = false;
+
+
 esp_err_t init_camera();
 
 
@@ -36,6 +39,11 @@ void main(void* arg) {
   }
 
   while (true) {
+    if (!do_photo) {
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
+      continue;
+    }
+
     camera_fb_t* pic = esp_camera_fb_get();
 
     ESP_LOGI(tag, "Picture maked | (%d, %d): %zu bytes", pic->width, pic->height, pic->len);
@@ -104,6 +112,16 @@ esp_err_t init_camera() {
   };
 
   return esp_camera_init(&camera_config);
+}
+
+
+void start_photo() {
+  do_photo = true;
+}
+
+
+void stop_photo() {
+  do_photo = false;
 }
 
 
