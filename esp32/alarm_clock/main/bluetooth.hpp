@@ -25,6 +25,9 @@
 #include "esp_bt_defs.h"
 #include "esp_bt_main.h"
 
+#include "storage.hpp"
+#include "logic.hpp"
+
 
 namespace ble {
 
@@ -117,7 +120,7 @@ static constexpr uint16_t GATTS_CHAR_UUID_TEST_C = 0xFF01;
 static constexpr uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
 static constexpr uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
 static constexpr uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
-static constexpr uint8_t char_prop_read =  ESP_GATT_CHAR_PROP_BIT_READ;
+static constexpr uint8_t char_prop_read = ESP_GATT_CHAR_PROP_BIT_READ;
 static constexpr uint8_t char_prop_write = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static constexpr uint8_t char_prop_read_write_notify = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static constexpr uint8_t heart_measurement_ccc[2] = { 0x00, 0x00 };
@@ -413,8 +416,19 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
     case ESP_GATTS_WRITE_EVT: {
       ESP_LOGI(tag, "Characteristic write, value ");
       ESP_LOG_BUFFER_HEX(tag, param->write.value, param->write.len);
-      // std::string data(param->write.value, param->write.value + param->write.len);
-      // ESP_LOGI(tag, "%s", data.c_str());
+
+      if (param->write.len == 2) {
+        uint8_t hours = param->write.value[0];
+        uint8_t minutes = param->write.value[1];
+        ESP_LOGI(tag, "Set alarm to %d:%d", hours, minutes);
+        if (storage::save("hours", hours) != storage::WRITE_OK) ESP_LOGE(tag, "Can't write hours to storage");
+        if (storage::save("minutes", minutes) != storage::WRITE_OK) ESP_LOGE(tag, "Can't write hours to storage");
+        logic::change_time(hours, minutes);
+      }
+      else {
+        ESP_LOGE(tag, "Message len isn't correct");
+      }
+
       break;
     }
 

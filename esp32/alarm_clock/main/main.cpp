@@ -13,6 +13,7 @@
 #include "bluetooth.hpp"
 #include "sntp.hpp"
 #include "channels.hpp"
+#include "logic.hpp"
 
 
 extern "C" void app_main(void) {
@@ -29,9 +30,13 @@ extern "C" void app_main(void) {
   TaskHandle_t http_task_handle;
   TaskHandle_t cam_task_handle;
   TaskHandle_t ble_task_handle;
+  TaskHandle_t logic_task_handle;
   
   xTaskCreate(http::main, "http::main", 8096, nullptr, 1, &http_task_handle);
   ESP_LOGI(tag, "Created http task");
+
+  xTaskCreate(logic::main, "logic::main", 8096, nullptr, 1, &logic_task_handle);
+  ESP_LOGI(tag, "Created logic task");
 
   xTaskCreate(cam::main, "cam::main", 8096, nullptr, 1, &cam_task_handle);
   ESP_LOGI(tag, "Created camera task");

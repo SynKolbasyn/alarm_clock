@@ -53,14 +53,15 @@ bool socket_write(int sock, const std::string& host, const std::vector<std::uint
 bool set_socket_timeout(int sock);
 std::string socket_read(int sock);
 std::expected<std::string, http_error> send_request(const std::string& server_address, const std::string& server_port, const std::vector<std::uint8_t>& data);
+void send_result(std::string result);
 
 
 const char* tag = "http";
 
 
 void main(void* arg) {
-  const std::string server_address = "192.168.116.44";
-  const std::string server_port = "8000";
+  const std::string server_address = "192.168.40.53";
+  const std::string server_port = "8087";
 
   while (true) {
     channels::image_t image;
@@ -68,8 +69,18 @@ void main(void* arg) {
     std::vector<std::uint8_t> data(image.buffer, image.buffer + image.size);
     delete[] image.buffer;
     std::expected<std::string, http_error> request_result = send_request(server_address, server_port, data);
-    if (request_result.has_value()) ESP_LOGI(tag, "request result size: \n%zu\n\n%s", request_result->size(), request_result->c_str());
+    if (request_result.has_value()) {
+      ESP_LOGI(tag, "request result size: \n%zu\n\n%s", request_result->size(), request_result->c_str());
+      send_result(request_result->c_str());
+    }
   }
+}
+
+
+void send_result(std::string result) {
+  int32_t result_code = 404;
+  if (result.contains("200")) result_code = 200;
+  xQueueSend(channels::server_status_channel, static_cast<void*>(&result_code), 100 / portTICK_PERIOD_MS);
 }
 
 
