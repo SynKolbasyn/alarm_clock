@@ -33,12 +33,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -53,6 +55,7 @@ var connectionStatus = mutableStateOf("disconected")
 lateinit var bleGatt: BluetoothGatt
 
 val openDialog = mutableStateOf(false)
+val openWiFiDialog = mutableStateOf(false)
 
 
 class DeviceActivity : ComponentActivity() {
@@ -183,9 +186,34 @@ private fun onTimePickedSuccess(activity: Activity, timePickerState: TimePickerS
             requestPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
         }
     }
+}
 
-    bleGatt.readCharacteristic(characteristic)
-    bleGatt.writeCharacteristic(characteristic, "Hello".toByteArray(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private fun sendWiFiData(activity: Activity, ssid: String, password: String) {
+    if (connectionStatus.value != "connected") {
+        val message: Toast = Toast.makeText(activity, "The device is not connected", Toast.LENGTH_SHORT)
+        message.show()
+        return
+    }
+    val ssidCharacteristic = bleGatt.services[2].characteristics[1]
+    val passwordCharacteristic = bleGatt.services[2].characteristics[2]
+
+    when {
+        ContextCompat.checkSelfPermission(activity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED -> {
+            bleGatt.writeCharacteristic(ssidCharacteristic, ssid.toByteArray(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+            bleGatt.writeCharacteristic(passwordCharacteristic, password.toByteArray(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+        }
+        ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.BLUETOOTH_CONNECT) -> {
+            val intent: Intent = Intent(activity, PermissionsActivity::class.java)
+            intent.putExtra("message", "To make the app work correctly, please provide the necessary permissions")
+            intent.putExtra("permission", Manifest.permission.BLUETOOTH_CONNECT)
+            permissionExplainLauncher.launch(intent)
+        }
+        else -> {
+            requestPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+    }
 }
 
 
@@ -196,8 +224,10 @@ private fun MainLayout(modifier: Modifier, activity: Activity) {
     Column(modifier = modifier) {
         Text(text = "Status: $status", modifier = modifier)
         Button(onClick = { openDialog.value = true }, modifier = modifier) { Text(text = "Set alarm clock time", modifier = modifier) }
-        PickTime(modifier = modifier, activity = activity)
+        Button(onClick = { openWiFiDialog.value = true }, modifier = modifier) { Text(text = "Configure WiFi", modifier = modifier) }
     }
+    PickTime(modifier = modifier, activity = activity)
+    SetWiFi(modifier = modifier, activity = activity)
 }
 
 
@@ -240,6 +270,54 @@ private fun PickTime(modifier: Modifier, activity: Activity) {
                             modifier = modifier,
                         ) {
                             Text(text = "Confirm", modifier = modifier)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SetWiFi(modifier: Modifier, activity: Activity) {
+    val openWiFiDialogState by openWiFiDialog
+    var ssid = remember { mutableStateOf("ssid") }
+    var password = remember { mutableStateOf("password") }
+
+    when {
+        openWiFiDialogState -> {
+            BasicAlertDialog(
+                onDismissRequest = { openWiFiDialog.value = false },
+                modifier = modifier
+            ) {
+                Column(modifier = modifier) {
+                    TextField(value = ssid.value, onValueChange = { data ->
+                        ssid.value = data
+                    }, modifier = modifier)
+                    TextField(value = password.value, onValueChange = { data ->
+                        password.value = data
+                    }, modifier = modifier)
+
+                    Row(modifier = modifier) {
+                        Button(
+                            onClick = {
+                                openWiFiDialog.value = false
+                            },
+                            modifier = modifier
+                        ) {
+                            Text(text = "Cancel", modifier = modifier)
+                        }
+                        Button(
+                            onClick = {
+                                openWiFiDialog.value = false
+                                sendWiFiData(activity, ssid.value, password.value)
+                            },
+                            modifier = modifier
+                        ) {
+                            Text(text = "Send", modifier = modifier)
                         }
                     }
                 }
