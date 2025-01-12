@@ -10,6 +10,7 @@ import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -131,6 +132,15 @@ class DeviceActivity : ComponentActivity() {
                     Log.w("DEBUG_TAG", "onServicesDiscovered not success. status: $status")
                 }
             }
+
+            override fun onCharacteristicWrite(
+                gatt: BluetoothGatt?,
+                characteristic: BluetoothGattCharacteristic?,
+                status: Int
+            ) {
+                super.onCharacteristicWrite(gatt, characteristic, status)
+                Log.d("DEBUG_TAG", "Characteristic has been written. Status: $status")
+            }
         }
 
         when {
@@ -196,13 +206,14 @@ private fun sendWiFiData(activity: Activity, ssid: String, password: String) {
         message.show()
         return
     }
+
     val ssidCharacteristic = bleGatt.services[2].characteristics[1]
     val passwordCharacteristic = bleGatt.services[2].characteristics[2]
 
     when {
         ContextCompat.checkSelfPermission(activity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED -> {
-            bleGatt.writeCharacteristic(ssidCharacteristic, ssid.toByteArray(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
-            bleGatt.writeCharacteristic(passwordCharacteristic, password.toByteArray(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+            while (bleGatt.writeCharacteristic(ssidCharacteristic, ssid.toByteArray(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) != BluetoothStatusCodes.SUCCESS) {}
+            while (bleGatt.writeCharacteristic(passwordCharacteristic, password.toByteArray(), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) != BluetoothStatusCodes.SUCCESS) {}
         }
         ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.BLUETOOTH_CONNECT) -> {
             val intent: Intent = Intent(activity, PermissionsActivity::class.java)
