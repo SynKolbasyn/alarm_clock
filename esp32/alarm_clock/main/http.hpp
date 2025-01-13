@@ -68,7 +68,9 @@ void main(void* arg) {
     if (xQueueReceive(channels::image_channel, static_cast<void*>(&image), portMAX_DELAY) != pdTRUE) continue;
     std::vector<std::uint8_t> data(image.buffer, image.buffer + image.size);
     delete[] image.buffer;
+
     std::expected<std::string, http_error> request_result = send_request(server_address, server_port, data);
+    
     if (request_result.has_value()) {
       ESP_LOGI(tag, "request result size: \n%zu\n\n%s", request_result->size(), request_result->c_str());
       send_result(request_result->c_str());

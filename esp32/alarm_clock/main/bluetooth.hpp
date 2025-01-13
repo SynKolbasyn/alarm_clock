@@ -35,6 +35,12 @@ namespace ble {
 enum {
   IDX_SVC,
   
+  IDX_CHAR_A,
+  IDX_CHAR_VAL_A,
+  
+  IDX_CHAR_B,
+  IDX_CHAR_VAL_B,
+  
   IDX_CHAR_C,
   IDX_CHAR_VAL_C,
   
@@ -115,7 +121,9 @@ static struct gatts_profile_inst heart_rate_profile_tab[HEART_PROFILE_NUM] = {
 };
 
 static constexpr uint16_t GATTS_SERVICE_UUID_TEST = 0x00FF;
-static constexpr uint16_t GATTS_CHAR_UUID_TEST_C = 0xFF01;
+static constexpr uint16_t GATTS_CHAR_UUID_TEST_A = 0xFF01;
+static constexpr uint16_t GATTS_CHAR_UUID_TEST_B = 0xFF02;
+static constexpr uint16_t GATTS_CHAR_UUID_TEST_C = 0xFF03;
 
 static constexpr uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
 static constexpr uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
@@ -130,6 +138,26 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] = {
   [IDX_SVC] = {
     { ESP_GATT_AUTO_RSP },
     { ESP_UUID_LEN_16, (uint8_t*)&primary_service_uuid, ESP_GATT_PERM_READ, sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID_TEST), (uint8_t*)&GATTS_SERVICE_UUID_TEST }
+  },
+
+  [IDX_CHAR_A] = {
+    { ESP_GATT_AUTO_RSP },
+    { ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid, ESP_GATT_PERM_READ, sizeof(uint8_t), sizeof(uint8_t), (uint8_t*)&char_prop_write }
+  },
+
+  [IDX_CHAR_VAL_A] = {
+    { ESP_GATT_AUTO_RSP },
+    { ESP_UUID_LEN_16, (uint8_t*)&GATTS_CHAR_UUID_TEST_A, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t*)char_value }
+  },
+
+  [IDX_CHAR_B] = {
+    { ESP_GATT_AUTO_RSP },
+    { ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid, ESP_GATT_PERM_READ, sizeof(uint8_t), sizeof(uint8_t), (uint8_t*)&char_prop_write }
+  },
+
+  [IDX_CHAR_VAL_B] = {
+    { ESP_GATT_AUTO_RSP },
+    { ESP_UUID_LEN_16, (uint8_t*)&GATTS_CHAR_UUID_TEST_B, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t*)char_value }
   },
 
   [IDX_CHAR_C] = {
@@ -414,19 +442,39 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
       break;
 
     case ESP_GATTS_WRITE_EVT: {
-      ESP_LOGI(tag, "Characteristic write, value ");
+      std::string data(param->write.value, param->write.value + param->write.len);
+      ESP_LOGI(tag, "Characteristic write, value: %s", data.c_str());
       ESP_LOG_BUFFER_HEX(tag, param->write.value, param->write.len);
+      ESP_LOGI(tag, "Characteristic write handle: %d", param->write.handle);
 
-      if (param->write.len == 2) {
-        uint8_t hours = param->write.value[0];
-        uint8_t minutes = param->write.value[1];
-        ESP_LOGI(tag, "Set alarm to %d:%d", hours, minutes);
-        if (storage::save("hours", hours) != storage::WRITE_OK) ESP_LOGE(tag, "Can't write hours to storage");
-        if (storage::save("minutes", minutes) != storage::WRITE_OK) ESP_LOGE(tag, "Can't write hours to storage");
-        logic::change_time(hours, minutes);
-      }
-      else {
-        ESP_LOGE(tag, "Message len isn't correct");
+      switch (param->write.handle) {
+        case 42: {
+          uint8_t hours = param->write.value[0];
+          uint8_t minutes = param->write.value[1];
+          ESP_LOGI(tag, "Set alarm to %d:%d", hours, minutes);
+          if (storage::save("hours", hours) != storage::OK) ESP_LOGE(tag, "Can't write hours to storage");
+          if (storage::save("minutes", minutes) != storage::OK) ESP_LOGE(tag, "Can't write hours to storage");
+          logic::change_time(hours, minutes);
+          break;
+        }
+
+        case 44: {
+          ESP_LOGI(tag, "Characteristic ssid has been written");
+          if (storage::save_string("wifi_ssid", data) != storage::OK) ESP_LOGE(tag, "Couldn't save wifi ssid to nvs flash");
+          else ESP_LOGI(tag, "wifi ssid saved to nvs flash");
+          break;
+        }
+        
+        case 46: {
+          ESP_LOGI(tag, "Characteristic password has been written");
+          if (storage::save_string("wifi_password", data) != storage::OK) ESP_LOGE(tag, "Couldn't save wifi password to nvs flash");
+          else ESP_LOGI(tag, "wifi password saved to nvs flash");
+          break;
+        }
+
+        default:
+          ESP_LOGE(tag, "BLE message type isn't correct");
+          break;
       }
 
       break;

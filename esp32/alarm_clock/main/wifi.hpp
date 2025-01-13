@@ -25,7 +25,7 @@ void start();
 void stop();
 esp_err_t sta_do_connect(wifi_config_t wifi_config, bool wait);
 esp_err_t sta_do_disconnect();
-esp_err_t connect();
+esp_err_t connect(std::string ssid, std::string password);
 void shutdown();
 
 
@@ -36,12 +36,23 @@ static int s_retry_num = 0;
 
 
 void init() {
-  while (connect() != ESP_OK) ESP_LOGE(tag, "CAN'T CONNECT TO WIFI, TRYING AGAIN");
-  ESP_LOGI(tag, "SUCCSESSFULY WIFI CONNECTION");
+  std::string ssid;
+  std::string password;
+  
+  storage::StorageError ret1 = storage::load_string("wifi_ssid", ssid);
+  storage::StorageError ret2 = storage::load_string("wifi_password", password);
+
+  if ((ret1 == storage::OK) && (ret2 == storage::OK)) {
+    while (connect(ssid, password) != ESP_OK) ESP_LOGE(tag, "CAN'T CONNECT TO WIFI, TRYING AGAIN");
+    ESP_LOGI(tag, "SUCCSESSFULY WIFI CONNECTION");
+  }
+  else {
+    while (true) vTaskDelay(portMAX_DELAY);
+  }
 }
 
 
-esp_err_t connect() {
+esp_err_t connect(std::string ssid, std::string password) {
   ESP_LOGI(tag, "Start example_connect.");
   start();
   wifi_scan_threshold_t threshold = {
@@ -50,13 +61,15 @@ esp_err_t connect() {
   };
   wifi_config_t wifi_config = {
     .sta = {
-      .ssid = CONFIG_EXAMPLE_WIFI_SSID,
-      .password = CONFIG_EXAMPLE_WIFI_PASSWORD,
+      .ssid = { 0 },
+      .password = { 0 },
       .scan_method = WIFI_ALL_CHANNEL_SCAN,
       .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
       .threshold = threshold,
     },
   };
+  memcpy(wifi_config.sta.ssid, ssid.c_str(), ssid.length());
+  memcpy(wifi_config.sta.password, password.c_str(), password.length());
 
   return sta_do_connect(wifi_config, true);
 }

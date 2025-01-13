@@ -19,18 +19,22 @@
 extern "C" void app_main(void) {
   const char* tag = "main";
 
-  storage::init();
-  ESP_ERROR_CHECK(esp_netif_init());
-  ESP_ERROR_CHECK(esp_event_loop_create_default());
-
-  wifi::init();
-  sntp::init();
-  channels::init();
-
   TaskHandle_t http_task_handle;
   TaskHandle_t cam_task_handle;
   TaskHandle_t ble_task_handle;
   TaskHandle_t logic_task_handle;
+
+  storage::init();
+  ESP_ERROR_CHECK(esp_netif_init());
+  ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+  xTaskCreate(ble::main, "ble::main", 8096, nullptr, 1, &ble_task_handle);
+  ESP_LOGI(tag, "Created bluetooth task");
+
+  // wifi::init(CONFIG_EXAMPLE_WIFI_SSID, CONFIG_EXAMPLE_WIFI_PASSWORD);
+  wifi::init();
+  sntp::init();
+  channels::init();
   
   xTaskCreate(http::main, "http::main", 8096, nullptr, 1, &http_task_handle);
   ESP_LOGI(tag, "Created http task");
@@ -40,12 +44,10 @@ extern "C" void app_main(void) {
 
   xTaskCreate(cam::main, "cam::main", 8096, nullptr, 1, &cam_task_handle);
   ESP_LOGI(tag, "Created camera task");
-
-  xTaskCreate(ble::main, "ble::main", 8096, nullptr, 1, &ble_task_handle);
-  ESP_LOGI(tag, "Created bluetooth task");
   
   while (true) vTaskDelay(portMAX_DELAY);
 
+  vTaskDelete(logic_task_handle);
   vTaskDelete(http_task_handle);
   vTaskDelete(cam_task_handle);
   vTaskDelete(ble_task_handle);

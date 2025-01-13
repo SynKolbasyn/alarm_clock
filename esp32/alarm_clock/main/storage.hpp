@@ -13,12 +13,15 @@
 #include "nvs_handle.hpp"
 #include "esp_system.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 
 namespace storage {
 
 
 enum StorageError {
-  WRITE_OK,
+  OK,
   FAILED_TO_READ_VALUE,
   FAILED_TO_WRITE_VALUE,
 };
@@ -48,34 +51,71 @@ void init() {
 }
 
 
-template<typename T> std::expected<T, StorageError> load(const std::string& key) {
-  T value;
+template<typename T> StorageError load(const std::string& key, T& value) {
   esp_err_t res = handle->get_item(key.c_str(), value);
-  if (res != ESP_OK) return std::unexpected(FAILED_TO_READ_VALUE);
-  return value;
+  if (res != ESP_OK) return FAILED_TO_READ_VALUE;
+  return OK;
 }
 
 
-template<typename T> std::expected<T, StorageError> load(const std::string&& key) {
-  T value;
+template<typename T> StorageError load(const std::string&& key, T& value) {
   esp_err_t res = handle->get_item(key.c_str(), value);
-  if (res != ESP_OK) return std::unexpected(FAILED_TO_READ_VALUE);
-  return value;
+  if (res != ESP_OK) return FAILED_TO_READ_VALUE;
+  return OK;
 }
 
 
 template<typename T> StorageError save(const std::string& key, T& value) {
   esp_err_t res = handle->set_item(key.c_str(), value);
   if (res != ESP_OK) return FAILED_TO_WRITE_VALUE;
-  return WRITE_OK;
+  handle->commit();
+  return OK;
 }
 
 
 template<typename T> StorageError save(const std::string&& key, T& value) {
   esp_err_t res = handle->set_item(key.c_str(), value);
   if (res != ESP_OK) return FAILED_TO_WRITE_VALUE;
-  return WRITE_OK;
+  handle->commit();
+  return OK;
 }
+
+
+StorageError load_string(const std::string& key, std::string& value) {
+  char data[1024];
+  esp_err_t res = handle->get_string(key.c_str(), data, 1024);
+  if (res != ESP_OK) return FAILED_TO_READ_VALUE;
+  value = std::string(data);
+  return OK;
+}
+
+
+StorageError load_string(const std::string&& key, std::string& value) {
+  char data[1024];
+  esp_err_t res = handle->get_string(key.c_str(), data, 1024);
+  if (res != ESP_OK) return FAILED_TO_READ_VALUE;
+  value = std::string(data);
+  return OK;
+}
+
+
+StorageError save_string(const std::string& key, std::string value) {
+  esp_err_t res = handle->set_string(key.c_str(), value.c_str());
+  if (res != ESP_OK) return FAILED_TO_WRITE_VALUE;
+  handle->commit();
+  return OK;
+}
+
+
+StorageError save_string(const std::string&& key, std::string value) {
+  esp_err_t res = handle->set_string(key.c_str(), value.c_str());
+  if (res != ESP_OK) return FAILED_TO_WRITE_VALUE;
+  handle->commit();
+  return OK;
+}
+
+
+
 
 
 }
