@@ -14,6 +14,9 @@
 #include "esp_event.h"
 
 
+#define MAX_RECONNECT_NUM 1000000
+
+
 namespace wifi {
 
 
@@ -56,7 +59,7 @@ esp_err_t connect(std::string ssid, std::string password) {
   ESP_LOGI(tag, "Start example_connect.");
   start();
   wifi_scan_threshold_t threshold = {
-    .rssi = CONFIG_EXAMPLE_WIFI_SCAN_RSSI_THRESHOLD,
+    .rssi = -127,
     .authmode = WIFI_AUTH_OPEN,
   };
   wifi_config_t wifi_config = {
@@ -136,7 +139,7 @@ esp_err_t sta_do_connect(wifi_config_t wifi_config, bool wait) {
   if (wait) {
     ESP_LOGI(tag, "Waiting for IP(s)");
     xSemaphoreTake(s_semph_get_ip_addrs, portMAX_DELAY);
-    if (s_retry_num > CONFIG_EXAMPLE_WIFI_CONN_MAX_RETRY) {
+    if (s_retry_num > MAX_RECONNECT_NUM) {
       return ESP_FAIL;
     }
   }
@@ -159,7 +162,7 @@ esp_err_t sta_do_disconnect() {
 
 static void handler_on_wifi_disconnect(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
   s_retry_num++;
-  if (s_retry_num > CONFIG_EXAMPLE_WIFI_CONN_MAX_RETRY) {
+  if (s_retry_num > MAX_RECONNECT_NUM) {
     ESP_LOGI(tag, "WiFi Connect failed %d times, stop reconnect.", s_retry_num);
     if (s_semph_get_ip_addrs) {
       xSemaphoreGive(s_semph_get_ip_addrs);

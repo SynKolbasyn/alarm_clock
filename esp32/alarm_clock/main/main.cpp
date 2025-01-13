@@ -31,7 +31,6 @@ extern "C" void app_main(void) {
   xTaskCreate(ble::main, "ble::main", 8096, nullptr, 1, &ble_task_handle);
   ESP_LOGI(tag, "Created bluetooth task");
 
-  // wifi::init(CONFIG_EXAMPLE_WIFI_SSID, CONFIG_EXAMPLE_WIFI_PASSWORD);
   wifi::init();
   sntp::init();
   channels::init();
