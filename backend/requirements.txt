@@ -1,8 +1,0 @@
-tensorflow
-imageio
-matplotlib==3.9.2
-opencv-python
-ipython
-fastapi
-tensorflow-hub
-tensorflow-docs

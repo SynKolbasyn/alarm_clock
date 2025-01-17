@@ -1,0 +1,16 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.6",
+    "imageio>=2.36.1",
+    "ipython>=8.31.0",
+    "matplotlib==3.9.2",
+    "opencv-python>=4.11.0.86",
+    "tensorflow>=2.18.0",
+    "tensorflow-docs>=2024.2.5.73858",
+    "tensorflow-hub>=0.15.0",
+]

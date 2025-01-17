@@ -12,7 +12,7 @@ import matplotlib.patches as patches
 # Some modules to display an animation using imageio.
 import imageio
 from IPython.display import HTML, display
-from extra import *
+from .extra import *
 
 model_name = "movenet_lightning"
 input_size = 256
@@ -49,12 +49,12 @@ def pic_to_skeleton(image):
     display_image = tf.expand_dims(image, axis=0)
     display_image = tf.cast(tf.image.resize_with_pad(
         display_image, 1280, 1440), dtype=tf.int32)
-    output_overlay = draw_prediction_on_image(
+    output_overlay, edges_with_names = draw_prediction_on_image(
         np.squeeze(display_image.numpy(), axis=0), keypoints_with_scores)
 
     #plt.figure(figsize=(5, 5))
     #plt.imsave(f'result.jpg', output_overlay)
-    return keypoints_with_scores, output_overlay
+    return output_overlay
 
 def pic_to_skeleton_tg(image):
 

@@ -31,6 +31,10 @@ KEYPOINT_DICT = {
     'right_ankle': 16
 }
 
+KEYPOINT_DICT_INVERTED = dict()
+for i, j in KEYPOINT_DICT.items():
+    KEYPOINT_DICT_INVERTED[j] = i
+
 # Maps bones to a matplotlib color name.
 KEYPOINT_EDGE_INDS_TO_COLOR = {
     (0, 1): 'm',
@@ -56,7 +60,7 @@ KEYPOINT_EDGE_INDS_TO_COLOR = {
 def keypoints_and_edges_for_display(keypoints_with_scores,
                                      height,
                                      width,
-                                     keypoint_threshold=0.11):
+                                     keypoint_threshold=0.11, names=False):
   """Returns high confidence keypoints and edges for visualization.
 
   Args:
@@ -87,6 +91,7 @@ def keypoints_and_edges_for_display(keypoints_with_scores,
         kpts_scores > keypoint_threshold, :]
     keypoints_all.append(kpts_above_thresh_absolute)
 
+    edges_with_names = dict()
     for edge_pair, color in KEYPOINT_EDGE_INDS_TO_COLOR.items():
       if (kpts_scores[edge_pair[0]] > keypoint_threshold and
           kpts_scores[edge_pair[1]] > keypoint_threshold):
@@ -97,6 +102,8 @@ def keypoints_and_edges_for_display(keypoints_with_scores,
         line_seg = np.array([[x_start, y_start], [x_end, y_end]])
         keypoint_edges_all.append(line_seg)
         edge_colors.append(color)
+        edges_with_names[f'{KEYPOINT_DICT_INVERTED[edge_pair[0]]}-{KEYPOINT_DICT_INVERTED[edge_pair[1]]}'] = line_seg
+
   if keypoints_all:
     keypoints_xy = np.concatenate(keypoints_all, axis=0)
   else:
@@ -106,7 +113,10 @@ def keypoints_and_edges_for_display(keypoints_with_scores,
     edges_xy = np.stack(keypoint_edges_all, axis=0)
   else:
     edges_xy = np.zeros((0, 2, 2))
-  return keypoints_xy, edges_xy, edge_colors
+  if names:
+      return keypoints_xy, edges_xy, edge_colors, edges_with_names
+  else:
+      return keypoints_xy, edges_xy, edge_colors
 
 
 def draw_prediction_on_image(
@@ -147,8 +157,8 @@ def draw_prediction_on_image(
   scat = ax.scatter([], [], s=60, color='#FF1493', zorder=3)
 
   (keypoint_locs, keypoint_edges,
-   edge_colors) = keypoints_and_edges_for_display(
-       keypoints_with_scores, height, width)
+   edge_colors, edges_with_names) = keypoints_and_edges_for_display(
+       keypoints_with_scores, height, width, names=True)
 
   line_segments.set_segments(keypoint_edges)
   line_segments.set_color(edge_colors)
@@ -178,4 +188,4 @@ def draw_prediction_on_image(
     image_from_plot = cv2.resize(
         image_from_plot, dsize=(output_image_width, output_image_height),
          interpolation=cv2.INTER_CUBIC)
-  return image_from_plot
+  return image_from_plot, edges_with_names

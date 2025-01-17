@@ -2,9 +2,8 @@ import os
 import cv2
 import numpy as np
 from PIL import Image
-from extra import *
-from extra import keypoints_and_edges_for_display
-from model import *
+from CV.extra import *
+from CV.model import *
 from estimator import estimate
 
 
@@ -18,7 +17,7 @@ frame_width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 # Define the codec and create VideoWriter object
-etalon, edges, colors = keypoints_and_edges_for_display(get_keypoints(template), frame_width, frame_height)
+etalon_keypoints, etalon_edges, colors, etalon_edges_with_names = keypoints_and_edges_for_display(get_keypoints(template), frame_width, frame_height, names=True)
 
 while True:
     ret, frame = cam.read()
@@ -26,17 +25,17 @@ while True:
     cv2.imwrite('camera-detect.jpg', frame)
     #hash = imagehash.average_hash(Image.open('camera-detect.jpg'))
     #gave frame
-    keypoints = get_keypoints('camera-detect.jpg')
-    locs, edges, colors = keypoints_and_edges_for_display(keypoints, frame_width, frame_height)
+    # keypoints = get_keypoints('camera-detect.jpg')
+    locs, edges, colors, edges_with_names = keypoints_and_edges_for_display(get_keypoints('camera-detect.jpg'), frame_width, frame_height, names=True)
     #i know, where locs
-    with_skeleton = pic_to_skeleton('camera-detect.jpg')[1]
+    with_skeleton = pic_to_skeleton('camera-detect.jpg')
     with_skeleton = cv2.resize(with_skeleton, (0,0), fx=0.25, fy=0.25)
-    temp_skeleton = cv2.resize(pic_to_skeleton(template)[1], (0, 0), fx=0.1, fy=0.1)
-    if estimate(etalon, locs):
-        print('YES')
-
+    temp_skeleton = cv2.resize(pic_to_skeleton(template), (0, 0), fx=0.1, fy=0.1)
+    if estimate(etalon_edges_with_names, etalon_edges_with_names):
+        pass
+        # print('YES')
     else:
-        print('NO')
+        # print('NO')
         pass
         # print('take correct pose')
     # Write the frame to the output file
