@@ -22,13 +22,13 @@ etalon_keypoints, etalon_edges, colors, etalon_edges_with_names = keypoints_and_
 while True:
     ret, frame = cam.read()
 
-    cv2.imwrite('camera-detect.jpg', frame)
+    # cv2.imwrite('camera-detect.jpg', frame)
     #hash = imagehash.average_hash(Image.open('camera-detect.jpg'))
     #gave frame
     # keypoints = get_keypoints('camera-detect.jpg')
-    locs, edges, colors, edges_with_names = keypoints_and_edges_for_display(get_keypoints('camera-detect.jpg'), frame_width, frame_height, names=True)
+    locs, edges, colors, edges_with_names = keypoints_and_edges_for_display(get_keypoints(frame, from_nparray=True), frame_width, frame_height, names=True)
     #i know, where locs
-    with_skeleton = pic_to_skeleton('camera-detect.jpg')
+    with_skeleton = pic_to_skeleton(frame, from_nparray=True)
     with_skeleton = cv2.resize(with_skeleton, (0,0), fx=0.25, fy=0.25)
     temp_skeleton = cv2.resize(pic_to_skeleton(template), (0, 0), fx=0.1, fy=0.1)
     if estimate(etalon_edges_with_names, etalon_edges_with_names):

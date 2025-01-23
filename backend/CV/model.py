@@ -30,13 +30,17 @@ def movenet(input_image):
 
 
 
-def pic_to_skeleton(image):
-
-    # Load the input image.
-    image_path = image
-    image = tf.io.read_file(image_path)
-    image = tf.convert_to_tensor(image)
-    image = tf.image.decode_jpeg(image)
+def pic_to_skeleton(image, from_nparray=False):
+    if from_nparray:
+        print(image.dtype)
+        image = tf.convert_to_tensor(image, dtype=np.uint8)
+        # image = tf.image.decode_jpeg(image)
+        pass
+    else:
+        image_path = image
+        image = tf.io.read_file(image_path)
+        image = tf.convert_to_tensor(image)
+        image = tf.image.decode_jpeg(image)
 
     input_image = tf.expand_dims(image, axis=0)
 
@@ -88,13 +92,20 @@ def pic_to_skeleton_tg(image):
     plt.imsave(f'new_{image_path}', output_overlay)
 
 
-def get_keypoints(image):
-    image_path = image
-    image = tf.io.read_file(image_path)
-    image = tf.convert_to_tensor(image)
-    image = tf.image.decode_jpeg(image)
+def get_keypoints(image, from_nparray=False):
+    if from_nparray:
+        print(image.dtype)
+        image = tf.convert_to_tensor(image, dtype=np.uint64)
+        image = tf.image.decode_jpeg(image)
+        pass
+    else:
+        image_path = image
+        image = tf.io.read_file(image_path)
+        image = tf.convert_to_tensor(image)
+        image = tf.image.decode_jpeg(image)
 
     input_image = tf.expand_dims(image, axis=0)
     input_image = tf.image.resize_with_pad(input_image, input_size, input_size)
     keypoints_with_scores = movenet(input_image)
     return keypoints_with_scores
+
