@@ -13,4 +13,5 @@ dependencies = [
     "tensorflow>=2.18.0",
     "tensorflow-docs>=2024.2.5.73858",
     "tensorflow-hub>=0.15.0",
+    "psycopg2-binary>=2.9.10",
 ]
