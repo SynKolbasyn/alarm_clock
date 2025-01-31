@@ -3,9 +3,9 @@ name = "backend"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12, <3.13"
 dependencies = [
-    "fastapi>=0.115.6",
+    "fastapi[standard]>=0.115.6",
     "imageio>=2.36.1",
     "ipython>=8.31.0",
     "matplotlib==3.9.2",
@@ -14,4 +14,6 @@ dependencies = [
     "tensorflow-docs>=2024.2.5.73858",
     "tensorflow-hub>=0.15.0",
     "psycopg2-binary>=2.9.10",
+    "gunicorn>=23.0.0",
+    "uvicorn>=0.34.0",
 ]

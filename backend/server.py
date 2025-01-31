@@ -1,22 +1,18 @@
-import time
-
-import PIL.Image
 from fastapi import FastAPI, Request
 from starlette import status
 from starlette.responses import Response
-# from PIL import Image
-from io import BytesIO
 import numpy as np
 import cv2
-from threading import Thread
+import uvicorn
 from CV.extra import keypoints_and_edges_for_display
 from CV.model import get_keypoints
-
 from estimator import estimate
 
 app = FastAPI()
 
 template = 'template.jpg'
+frame_width = 1280
+frame_height = 720
 etalon_keypoints, etalon_edges, colors, etalon_edges_with_names = keypoints_and_edges_for_display(get_keypoints(template), frame_width, frame_height, names=True)
 
 
@@ -29,5 +25,5 @@ async def root(request: Request):
 
   keypoints, edges, edge_colors, edges_with_names = keypoints_and_edges_for_display(get_keypoints(image), names=True)
 
-  is_correct_pose = estimator(etalon_edges_with_names, edges_with_names)
+  is_correct_pose = estimate(etalon_edges_with_names, edges_with_names)
   return Response(status_code=status.HTTP_200_OK)

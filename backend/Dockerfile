@@ -2,8 +2,9 @@ FROM ubuntu:24.04 as build
 
 WORKDIR /project/
 
-RUN apt update
-RUN apt install -y curl
+RUN apt-get update
+RUN apt-get install -y curl
+RUN apt-get install ffmpeg libsm6 libgl1 libxext6 -y
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 COPY pyproject.toml /project/
@@ -12,6 +13,11 @@ RUN $HOME/.local/bin/uv sync
 
 FROM build
 
-COPY main.py /project/
+COPY ./CV /project/CV/
+COPY estimator.py /project/
+COPY model.tflite /project/
 
-CMD $HOME/.local/bin/uv run main.py
+COPY template.jpg /project/
+COPY server.py /project/
+
+CMD $HOME/.local/bin/uv run gunicorn server:app --workers $(nproc) --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80

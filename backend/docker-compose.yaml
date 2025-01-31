@@ -7,7 +7,7 @@ services:
       - 5432
     volumes:
       - ./database/:/var/lib/postgresql/data/
-    env_file: .env
+    env_file: template.env
   server:
     build:
       dockerfile: Dockerfile
@@ -15,6 +15,6 @@ services:
     hostname: server
     ports:
       - "8080:8080"
-    env_file: .env
+    env_file: template.env
     depends_on:
       - database
