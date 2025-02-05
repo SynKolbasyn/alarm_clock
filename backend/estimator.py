@@ -10,16 +10,17 @@ def estimate(pattern, detect):
             pattern_points = pattern[i][1] - pattern[i][0]
         except Exception:
             print(f'cannot get data about edge: {i}')
+            continue
         #edges состоит из точки начала и конца
 
         dot = np.dot(detect_points, pattern_points) #скалярное умножение
         print(f'DOT: {dot}')
-        detect_norm = np.linalg.norm(detect_points, ord=1) # норма Фробениуса
-        pattern_norm = np.linalg.norm(pattern_points, ord=1)
+        detect_norm = np.linalg.norm(detect_points, ord=None) # норма Фробениуса
+        pattern_norm = np.linalg.norm(pattern_points, ord=None)
         angle = np.degrees(np.arccos(dot/(detect_norm*pattern_norm)))
         print(f'ANGLE: {angle}')
         if angle > _LIMIT:
-            print('NO')
+            print(f'NO. fix your {i}')
             return False
 
             # return False

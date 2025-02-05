@@ -30,8 +30,8 @@ while True:
     #i know, where locs
     with_skeleton = pic_to_skeleton(frame, from_nparray=True)
     with_skeleton = cv2.resize(with_skeleton, (0,0), fx=0.25, fy=0.25)
-    temp_skeleton = cv2.resize(pic_to_skeleton(template), (0, 0), fx=0.1, fy=0.1)
-    if estimate(etalon_edges_with_names, etalon_edges_with_names):
+    temp_skeleton = cv2.resize(pic_to_skeleton(template), (0, 0), fx=0.3, fy=0.3)
+    if estimate(etalon_edges_with_names, edges_with_names):
         pass
         # print('YES')
     else:
