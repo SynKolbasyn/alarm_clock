@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Alarm Clock"
 include(":app")
- 
