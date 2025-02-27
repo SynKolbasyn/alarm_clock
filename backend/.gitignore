@@ -2,4 +2,5 @@
 /camera-detect.jpg
 /.venv
 /uv.lock
-
+/database/
+/.gitignore/
