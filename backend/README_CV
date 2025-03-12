@@ -1,2 +1,9 @@
-Загрузи в эту папку картинку с позой вместо template.jpg
+Загрузи в эту папку картинку с позой вместо ```template.jpg```
 если даже после этого не может задетектить позу, my fault(
+
+Для текущего тестирования запускать таким образом.
+
+
+apt-get install ffmpeg libsm6 libgl1 libxext6 -y
+curl -LsSf https://astral.sh/uv/install.sh | sh
+sudo $HOME/.local/bin/uv run cam-test.py
