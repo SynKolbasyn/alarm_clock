@@ -7,17 +7,11 @@ RUN apt-get install -y curl
 RUN apt-get install ffmpeg libsm6 libgl1 libxext6 -y
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-COPY pyproject.toml /project/
+COPY . /project/
 COPY .python-version /project/
 RUN $HOME/.local/bin/uv sync
 
 FROM build
 
-COPY ./CV /project/CV/
-COPY estimator.py /project/
-COPY model.tflite /project/
-
-COPY template.jpg /project/
-COPY server.py /project/
 
 CMD $HOME/.local/bin/uv run gunicorn server:app --workers $(nproc) --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80
