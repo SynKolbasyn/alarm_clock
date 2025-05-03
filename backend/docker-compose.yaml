@@ -1,13 +1,4 @@
 services:
-  database:
-    image: postgres:latest
-    container_name: database
-    hostname: database
-    ports:
-      - 5432
-    volumes:
-      - ./database/:/var/lib/postgresql/data/
-    env_file: template.env
   server:
     build:
       dockerfile: Dockerfile
@@ -15,6 +6,3 @@ services:
     hostname: server
     ports:
       - "8080:8080"
-    env_file: template.env
-    depends_on:
-      - database
