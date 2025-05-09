@@ -24,9 +24,9 @@ static const char* TAG = "music";
 
 // SD-карта
 #define MOUNT_POINT "/sdcard"
-#define SD_CARD_D0  GPIO_NUM_2
-#define SD_CARD_CLK GPIO_NUM_14
-#define SD_CARD_CMD GPIO_NUM_15
+#define SD_CARD_D0  GPIO_NUM_40
+#define SD_CARD_CLK GPIO_NUM_39
+#define SD_CARD_CMD GPIO_NUM_38
 
 // I2S
 #define I2S_MCLK GPIO_NUM_0
@@ -44,31 +44,31 @@ struct WAVHeader {
 
 
 esp_err_t mount_sdcard() {
-    ESP_LOGE(TAG, "Started to mount SD card");
+    ESP_LOGI(TAG, "Started to mount SD card");
 
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
-    host.flags = SDMMC_HOST_FLAG_4BIT; // включаем 4-битный режим
-    host.max_freq_khz = SDMMC_FREQ_DEFAULT;
+    host.flags = SDMMC_HOST_FLAG_1BIT; // включаем 1-битный режим
+    host.max_freq_khz = SDMMC_FREQ_PROBING;
 
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
-    slot_config.clk = GPIO_NUM_14;
-    slot_config.cmd = GPIO_NUM_15;
-    slot_config.d0  = GPIO_NUM_2;
-    slot_config.d1  = GPIO_NUM_4;
-    slot_config.d2  = GPIO_NUM_12;
-    slot_config.d3  = GPIO_NUM_13;
+    slot_config.clk = SD_CARD_CLK;
+    slot_config.cmd = SD_CARD_CMD;
+    slot_config.d0  = SD_CARD_D0;
+    slot_config.width = 1;
+    slot_config.d1 = GPIO_NUM_NC;
+    slot_config.d2 = GPIO_NUM_NC;
+    slot_config.d3 = GPIO_NUM_NC;
+    slot_config.flags = SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
-    gpio_set_pull_mode(GPIO_NUM_2,  GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_4,  GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_12, GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_13, GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_14, GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_15, GPIO_PULLUP_ONLY);
+    gpio_set_pull_mode(SD_CARD_CLK,  GPIO_PULLUP_ONLY);
+    gpio_set_pull_mode(SD_CARD_CMD,  GPIO_PULLUP_ONLY);
+    gpio_set_pull_mode(SD_CARD_D0, GPIO_PULLUP_ONLY);
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = false,
         .max_files = 3,
-        .allocation_unit_size = 16 * 1024
+        .allocation_unit_size = 16 * 1024,
+        .disk_status_check_enable = false
     };
 
     sdmmc_card_t* card;
@@ -198,7 +198,9 @@ extern "C" void app_main(void)
 */
 
 void init() {
-    while (mount_sdcard() != ESP_OK);
+    while (mount_sdcard() != ESP_OK) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
 
