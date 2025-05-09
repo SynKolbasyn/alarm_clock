@@ -11,6 +11,8 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "driver/i2s_std.h"
+#include "driver/spi_common.h"
+#include "driver/sdspi_host.h"
 #include "driver/sdmmc_host.h"
 #include "driver/gpio.h"
 #include "sdmmc_cmd.h"
@@ -22,17 +24,19 @@ namespace music {
 
 static const char* TAG = "music";
 
-// SD-карта
+// SD Card (SPI)
 #define MOUNT_POINT "/sdcard"
-#define SD_CARD_D0  GPIO_NUM_2
-#define SD_CARD_CLK GPIO_NUM_14
-#define SD_CARD_CMD GPIO_NUM_15
+#define SPI_HOST    SPI2_HOST
+#define SPI_CS      GPIO_NUM_5
+#define SPI_MOSI    GPIO_NUM_23
+#define SPI_MISO    GPIO_NUM_19
+#define SPI_SCLK    GPIO_NUM_18
 
 // I2S
-#define I2S_MCLK GPIO_NUM_0
-#define I2S_BCLK GPIO_NUM_1
-#define I2S_WS   GPIO_NUM_2
-#define I2S_DOUT GPIO_NUM_3
+#define I2S_MCLK    GPIO_NUM_0
+#define I2S_BCLK    GPIO_NUM_1
+#define I2S_WS      GPIO_NUM_2
+#define I2S_DOUT    GPIO_NUM_3
 
 
 struct WAVHeader {
@@ -44,27 +48,41 @@ struct WAVHeader {
 
 
 esp_err_t mount_sdcard() {
-    ESP_LOGE(TAG, "Started to mount SD card");
+    ESP_LOGI(TAG, "Initializing SD card over SPI");
 
-    sdmmc_host_t host = SDMMC_HOST_DEFAULT();
-    host.flags = SDMMC_HOST_FLAG_4BIT; // включаем 4-битный режим
-    host.max_freq_khz = SDMMC_FREQ_DEFAULT;
+    // Конфигурация SPI шины
+    spi_bus_config_t bus_cfg = {
+        .mosi_io_num = SPI_MOSI,
+        .miso_io_num = SPI_MISO,
+        .sclk_io_num = SPI_SCLK,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .data4_io_num = -1,
+        .data5_io_num = -1,
+        .data6_io_num = -1,
+        .data7_io_num = -1,
+        .max_transfer_sz = 4092,
+        .flags = SPICOMMON_BUSFLAG_MASTER,
+        .intr_flags = 0
+    };
 
-    sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
-    slot_config.clk = GPIO_NUM_14;
-    slot_config.cmd = GPIO_NUM_15;
-    slot_config.d0  = GPIO_NUM_2;
-    slot_config.d1  = GPIO_NUM_4;
-    slot_config.d2  = GPIO_NUM_12;
-    slot_config.d3  = GPIO_NUM_13;
+    // Инициализация SPI шины
+    esp_err_t ret = spi_bus_initialize(SPI_HOST, &bus_cfg, SPI_DMA_CH_AUTO);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize SPI bus: %s", esp_err_to_name(ret));
+        return ret;
+    }
 
-    gpio_set_pull_mode(GPIO_NUM_2,  GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_4,  GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_12, GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_13, GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_14, GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(GPIO_NUM_15, GPIO_PULLUP_ONLY);
+    // Конфигурация SD-карты
+    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
+    slot_config.gpio_cs = SPI_CS;
+    slot_config.host_id = SPI_HOST;
 
+    // Настройка подтяжки CS
+    gpio_set_pull_mode(SPI_CS, GPIO_PULLUP_ONLY);
+
+    // Параметры монтирования
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = false,
         .max_files = 3,
@@ -72,9 +90,17 @@ esp_err_t mount_sdcard() {
     };
 
     sdmmc_card_t* card;
-    esp_err_t ret = esp_vfs_fat_sdmmc_mount(MOUNT_POINT, &host, &slot_config, &mount_config, &card);
+    ret = esp_vfs_fat_sdspi_mount(
+        MOUNT_POINT,
+        &host,
+        &slot_config,
+        &mount_config,
+        &card
+    );
+
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to mount SD card: %s", esp_err_to_name(ret));
+        spi_bus_free(SPI_HOST);
     }
     return ret;
 }
@@ -198,7 +224,9 @@ extern "C" void app_main(void)
 */
 
 void init() {
-    while (mount_sdcard() != ESP_OK);
+    while (mount_sdcard() != ESP_OK) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
 
