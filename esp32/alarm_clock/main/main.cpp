@@ -14,6 +14,7 @@
 #include "sntp.hpp"
 #include "channels.hpp"
 #include "logic.hpp"
+#include "music.hpp"
 
 
 extern "C" void app_main(void) {
@@ -34,6 +35,7 @@ extern "C" void app_main(void) {
   wifi::init();
   sntp::init();
   channels::init();
+  music::init();
   
   xTaskCreate(http::main, "http::main", 8096, nullptr, 1, &http_task_handle);
   ESP_LOGI(tag, "Created http task");

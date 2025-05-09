@@ -1,1 +1,1 @@
-idf_component_register(SRCS "main.cpp" PRIV_REQUIRES bt nvs_flash INCLUDE_DIRS ".")
+idf_component_register(SRCS "main.cpp" INCLUDE_DIRS "." REQUIRES bt nvs_flash driver sdmmc vfs fatfs)
