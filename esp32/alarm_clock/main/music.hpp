@@ -12,6 +12,8 @@
 #include "esp_err.h"
 #include "driver/i2s_std.h"
 #include "driver/sdmmc_host.h"
+#include "driver/sdspi_host.h"
+#include "driver/spi_common.h"
 #include "driver/gpio.h"
 #include "sdmmc_cmd.h"
 #include "esp_vfs_fat.h"
@@ -43,40 +45,48 @@ struct WAVHeader {
 };
 
 
-esp_err_t mount_sdcard() {
-    ESP_LOGI(TAG, "Started to mount SD card");
+esp_err_t mount_sdcard()
+{
+    esp_err_t ret;
 
-    sdmmc_host_t host = SDMMC_HOST_DEFAULT();
-    host.flags = SDMMC_HOST_FLAG_1BIT; // включаем 1-битный режим
-    host.max_freq_khz = SDMMC_FREQ_PROBING;
-
-    sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
-    slot_config.clk = SD_CARD_CLK;
-    slot_config.cmd = SD_CARD_CMD;
-    slot_config.d0  = SD_CARD_D0;
-    slot_config.width = 1;
-    slot_config.d1 = GPIO_NUM_NC;
-    slot_config.d2 = GPIO_NUM_NC;
-    slot_config.d3 = GPIO_NUM_NC;
-    slot_config.flags = SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
-
-    gpio_set_pull_mode(SD_CARD_CLK,  GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(SD_CARD_CMD,  GPIO_PULLUP_ONLY);
-    gpio_set_pull_mode(SD_CARD_D0, GPIO_PULLUP_ONLY);
-
-    esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-        .format_if_mount_failed = false,
-        .max_files = 3,
-        .allocation_unit_size = 16 * 1024,
-        .disk_status_check_enable = false
+    // Настройка SPI пинов
+    spi_bus_config_t bus_cfg = {
+        .mosi_io_num = GPIO_NUM_11,
+        .miso_io_num = GPIO_NUM_13,
+        .sclk_io_num = GPIO_NUM_12,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = 4000,
     };
 
-    sdmmc_card_t* card;
-    esp_err_t ret = esp_vfs_fat_sdmmc_mount(MOUNT_POINT, &host, &slot_config, &mount_config, &card);
+    ret = spi_bus_initialize(SPI2_HOST, &bus_cfg, SDSPI_DEFAULT_DMA);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to mount SD card: %s", esp_err_to_name(ret));
+        ESP_LOGE("SD", "Failed to initialize SPI bus: %s", esp_err_to_name(ret));
+        return ret;
     }
-    return ret;
+
+    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
+    slot_config.host_id = SPI2_HOST;
+    slot_config.gpio_cs = GPIO_NUM_10;  // Пин CS (Chip Select)
+
+    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+    host.slot = SPI2_HOST;
+
+    sdmmc_card_t* card;
+    const esp_vfs_fat_mount_config_t mount_config = {
+        .format_if_mount_failed = false,
+        .max_files = 5,
+        .allocation_unit_size = 16 * 1024
+    };
+
+    ret = esp_vfs_fat_sdspi_mount(MOUNT_POINT, &host, &slot_config, &mount_config, &card);
+    if (ret != ESP_OK) {
+        ESP_LOGE("SD", "Failed to mount SD card: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    ESP_LOGI("SD", "SD card mounted successfully.");
+    return ESP_OK;
 }
 
 
