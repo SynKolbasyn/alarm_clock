@@ -3,5 +3,5 @@
 /.venv
 /uv.lock
 /database/
-/.gitignore/
-/__pycache__/
+
+__pycache__/
