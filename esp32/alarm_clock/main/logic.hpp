@@ -33,7 +33,7 @@ const char* tag = "logic";
 
 void main(void* arg) {
   bool flag = false;
-  TaskHandle_t music_task_handle = nullptr;;
+  TaskHandle_t music_task_handle = nullptr;
 
   while (true) {
     time_t now;
@@ -54,7 +54,7 @@ void main(void* arg) {
       ESP_LOGI(tag, "Start taking photo");
       flag = true;
       cam::start_photo();
-      xTaskCreate(music::main, "music::main", 8096, nullptr, 1, &music_task_handle);
+      xTaskCreate(music::main, "music::main", 2048, nullptr, 1, &music_task_handle);
     }
 
     if (is_pose_correct()) {
