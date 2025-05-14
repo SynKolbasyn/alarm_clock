@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 from CV.extra import *
 from CV.model import *
-from estimator import estimate
+from CV.estimator import estimate
 
 
 
@@ -22,8 +22,6 @@ etalon_keypoints, etalon_edges, colors, etalon_edges_with_names = keypoints_and_
 while True:
     ret, frame = cam.read()
 
-    # cv2.imwrite('camera-detect.jpg', frame)
-    #hash = imagehash.average_hash(Image.open('camera-detect.jpg'))
     #gave frame
     # keypoints = get_keypoints('camera-detect.jpg')
     locs, edges, colors, edges_with_names = keypoints_and_edges_for_display(get_keypoints(frame, from_nparray=True), frame_width, frame_height, names=True)
