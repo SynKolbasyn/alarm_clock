@@ -61,7 +61,7 @@ const char* tag = "http";
 
 void main(void* arg) {
   const std::string server_address = "192.168.133.231";
-  const std::string server_port = "8080";
+  const std::string server_port = "8087";
 
   while (true) {
     channels::image_t image;

@@ -16,8 +16,10 @@ void init() {
 
 
 void main(void* args) {
-    ESP_LOGI(TAG, "Music playing");
-    while (true) vTaskDelay(pdMS_TO_TICKS(1000));
+    while (true) {
+        ESP_LOGI(TAG, "Music playing");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
 

@@ -33,7 +33,7 @@ const char* tag = "logic";
 
 void main(void* arg) {
   bool flag = false;
-  TaskHandle_t music_task_handle = nullptr;;
+  TaskHandle_t music_task_handle = nullptr;
 
   while (true) {
     time_t now;
