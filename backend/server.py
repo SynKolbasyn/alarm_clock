@@ -22,7 +22,7 @@ async def root(request: Request, etalon_edges_with_names: Annotated[dict, Depend
     print(len(data))
     image = cv2.imdecode(np.asarray(bytearray(data), dtype=np.uint8), cv2.IMREAD_COLOR)
     
-    _, _, _, edges_with_names = keypoints_and_edges_for_display(get_keypoints(image), names=True)
+    _, _, _, edges_with_names = keypoints_and_edges_for_display(get_keypoints(image, from_nparray=True), 1280, 720, names=True)
 
     is_correct_pose = estimate(etalon_edges_with_names, edges_with_names)
     response = HTTPStatus.OK if is_correct_pose else HTTPStatus.BAD_REQUEST
