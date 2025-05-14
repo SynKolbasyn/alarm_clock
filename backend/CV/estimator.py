@@ -1,9 +1,17 @@
 import numpy as np
 from math import sqrt
 import os
-import time
+
 _LIMIT = 30
+
+
 def estimate(pattern, detect):
+    """compare detected image with pattern
+    Args:
+        pattern: pattern picture, etalon.
+        detect: detected image by esp32.
+    Returns:
+        Flag - is detected image is similar with pattern."""
     mean = 0
     for i in detect:
         os.system('clear')

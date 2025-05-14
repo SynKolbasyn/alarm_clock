@@ -9,13 +9,13 @@ from CV.estimator import estimate
 
 app = FastAPI()
 
-
+#load pattern image
 async def get_etalon_edges_with_names():
     _, _, _, res = keypoints_and_edges_for_display(get_keypoints('template.jpg'), 1280, 720, names=True)
     return res
 
 
-
+#endpoint for conversation with esp32
 @app.post("/")
 async def root(request: Request, etalon_edges_with_names: Annotated[dict, Depends(get_etalon_edges_with_names)]):
     data: bytes = await request.body()
