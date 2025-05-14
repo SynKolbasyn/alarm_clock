@@ -6,9 +6,6 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 import matplotlib.patches as patches
 
-# Some modules to display an animation using imageio.
-import imageio
-from IPython.display import HTML, display
 
 # Dictionary that maps from joint names to keypoint indices.
 KEYPOINT_DICT = {

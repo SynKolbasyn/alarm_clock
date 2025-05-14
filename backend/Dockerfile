@@ -13,6 +13,4 @@ RUN $HOME/.local/bin/uv sync
 
 FROM build
 
-
-
 CMD $HOME/.local/bin/uv run gunicorn server:app --workers $(nproc) --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80

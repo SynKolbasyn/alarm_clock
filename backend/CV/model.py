@@ -1,19 +1,17 @@
 import tensorflow as tf
 
+import os
 
 # Import matplotlib libraries
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 import matplotlib.patches as patches
 
-# Some modules to display an animation using imageio.
-import imageio
-from IPython.display import HTML, display
 from .extra import *
 
 model_name = "movenet_lightning"
 input_size = 256
-interpreter = tf.lite.Interpreter(model_path="model.tflite")
+interpreter = tf.lite.Interpreter(model_path="./CV/model.tflite")
 interpreter.allocate_tensors()
 
 def movenet(input_image):
@@ -29,7 +27,6 @@ def movenet(input_image):
 
 def pic_to_skeleton(image, from_nparray=False):
     if from_nparray:
-        print(image.dtype)
         image = tf.convert_to_tensor(image, dtype=np.uint8)
         # image = tf.image.decode_jpeg(image)
         pass
