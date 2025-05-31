@@ -24,6 +24,7 @@ extern "C" void app_main(void) {
   TaskHandle_t cam_task_handle;
   TaskHandle_t ble_task_handle;
   TaskHandle_t logic_task_handle;
+  TaskHandle_t music_task_handle;
 
   storage::init();
   ESP_ERROR_CHECK(esp_netif_init());
@@ -45,6 +46,9 @@ extern "C" void app_main(void) {
 
   xTaskCreate(cam::main, "cam::main", 8096, nullptr, 1, &cam_task_handle);
   ESP_LOGI(tag, "Created camera task");
+
+  xTaskCreate(music::main, "music::main", 2048, nullptr, 1, &music_task_handle);
+  ESP_LOGI(tag, "Created music task");
   
   while (true) vTaskDelay(portMAX_DELAY);
 
@@ -52,5 +56,6 @@ extern "C" void app_main(void) {
   vTaskDelete(http_task_handle);
   vTaskDelete(cam_task_handle);
   vTaskDelete(ble_task_handle);
+  vTaskDelete(music_task_handle);
   vTaskDelete(nullptr);
 }
