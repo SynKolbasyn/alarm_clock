@@ -1,49 +1,29 @@
-from fastapi import FastAPI, Request
-from starlette import status
-from starlette.responses import Response
+from http import HTTPStatus
+from typing import Annotated
+from fastapi import FastAPI, Request, Depends, Response
 import numpy as np
 import cv2
-import uvicorn
 from CV.extra import keypoints_and_edges_for_display
 from CV.model import get_keypoints
-from estimator import estimate
-import psycopg2
+from CV.estimator import estimate
 
 app = FastAPI()
 
-template = 'template.jpg'
-frame_width = 1280
-frame_height = 720
-etalon_keypoints, etalon_edges, colors, etalon_edges_with_names = keypoints_and_edges_for_display(get_keypoints(template), frame_width, frame_height, names=True)
-
-@app.post("/put_data")
-async def root(request: Request):
-  data: bytes = await request.body()
-  username: bytes = await request.headers.get('username')
-  image = cv2.imdecode(np.asarray(bytearray(data), dtype=np.uint8), cv2.IMREAD_COLOR)
-  # cv2.imwrite('image.jpeg', image)
-
-  keypoints, edges, edge_colors, edges_with_names = keypoints_and_edges_for_display(get_keypoints(image), names=True)
-
-  conn = psycopg2.connect(dbname='database', user='db_user',
-                          password='mypassword', host='localhost')
-  cursor = conn.cursor()
-  cursor.execute(f'INSERT INTO table_name (username, edges) VALUES ("{username}", {edges_with_names})')
-  records = cursor.fetchall()
-  ...
-  cursor.close()
-  conn.close()
-  return Response(status_code=status.HTTP_200_OK)
+#load pattern image
+async def get_etalon_edges_with_names():
+    _, _, _, res = keypoints_and_edges_for_display(get_keypoints('template.jpg'), 1280, 720, names=True)
+    return res
 
 
+#endpoint for conversation with esp32
 @app.post("/")
-async def root(request: Request):
-  data: bytes = await request.body()
-  print(len(data))
-  image = cv2.imdecode(np.asarray(bytearray(data), dtype=np.uint8), cv2.IMREAD_COLOR)
-  # cv2.imwrite('image.jpeg', image)
+async def root(request: Request, etalon_edges_with_names: Annotated[dict, Depends(get_etalon_edges_with_names)]):
+    data: bytes = await request.body()
+    print(len(data))
+    image = cv2.imdecode(np.asarray(bytearray(data), dtype=np.uint8), cv2.IMREAD_COLOR)
+    
+    _, _, _, edges_with_names = keypoints_and_edges_for_display(get_keypoints(image, from_nparray=True), 1280, 720, names=True)
 
-  keypoints, edges, edge_colors, edges_with_names = keypoints_and_edges_for_display(get_keypoints(image), names=True)
-
-  is_correct_pose = estimate(etalon_edges_with_names, edges_with_names)
-  return Response(status_code=status.HTTP_200_OK)
+    is_correct_pose = estimate(etalon_edges_with_names, edges_with_names)
+    response = HTTPStatus.OK if is_correct_pose else HTTPStatus.BAD_REQUEST
+    return Response(status_code=response)
