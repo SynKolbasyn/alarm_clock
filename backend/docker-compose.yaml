@@ -2,7 +2,5 @@ services:
   server:
     build:
       dockerfile: Dockerfile
-    container_name: server
-    hostname: server
     ports:
       - "8087:80"
