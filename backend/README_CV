@@ -1,9 +1,22 @@
-Загрузи в эту папку картинку с позой вместо ```template.jpg```
-если даже после этого не может задетектить позу, my fault(
+Загрузиn в эту папку картинку с позой вместо ```template.jpg```
 
-Для текущего тестирования запускать таким образом.
+Для локального тестирования нужно установить зависимости.
 
+```console
+RUN apt update
+RUN apt upgrade -y
+RUN apt install -y curl
+RUN apt install -y ffmpeg
+RUN apt install -y libsm6
+RUN apt install -y libgl1
+RUN apt install -y libxext6
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-apt-get install ffmpeg libsm6 libgl1 libxext6 -y
-curl -LsSf https://astral.sh/uv/install.sh | sh
+$HOME/.local/bin/uv python install
+$HOME/.local/bin/uv sync
+```
+
+и запустить таким образом
+```console
 sudo $HOME/.local/bin/uv run cam-test.py
+```

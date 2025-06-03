@@ -26,6 +26,13 @@ def movenet(input_image):
 
 
 def pic_to_skeleton(image, from_nparray=False):
+    """transform picture to skeleton image. Function for debug.
+
+    Args:
+        image: a detected picture by web camera. Can be a nparray and path to picture/
+        from_nparray: how parse image
+    Returns:
+        picture of skeleton"""
     if from_nparray:
         image = tf.convert_to_tensor(image, dtype=np.uint8)
         # image = tf.image.decode_jpeg(image)
@@ -56,6 +63,12 @@ def pic_to_skeleton(image, from_nparray=False):
 
 
 def get_keypoints(image, from_nparray=False):
+    """get keypoints on skeleton.
+    Args:
+        image: a detected picture by web camera. Can be a nparray and path to picture/
+        from_nparray: how parse image
+    Returns:
+        keypoints"""
     if from_nparray:
         image = tf.convert_to_tensor(image, dtype=np.uint8)
         # image = tf.image.decode_jpeg(image)

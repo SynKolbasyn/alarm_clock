@@ -2,7 +2,7 @@ import numpy as np
 from math import sqrt
 import os
 
-_LIMIT = 30
+_LIMIT = 20
 
 
 def estimate(pattern, detect):
