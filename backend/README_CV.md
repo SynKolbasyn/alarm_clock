@@ -3,14 +3,14 @@
 Для локального тестирования нужно установить зависимости.
 
 ```console
-RUN apt update
-RUN apt upgrade -y
-RUN apt install -y curl
-RUN apt install -y ffmpeg
-RUN apt install -y libsm6
-RUN apt install -y libgl1
-RUN apt install -y libxext6
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+sudo apt update
+apt upgrade -y
+apt install -y curl
+apt install -y ffmpeg
+apt install -y libsm6
+apt install -y libgl1
+apt install -y libxext6
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 $HOME/.local/bin/uv python install
 $HOME/.local/bin/uv sync
