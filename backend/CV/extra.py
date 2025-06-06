@@ -54,10 +54,13 @@ KEYPOINT_EDGE_INDS_TO_COLOR = {
     (14, 16): 'c'
 }
 
-def keypoints_and_edges_for_display(keypoints_with_scores,
-                                     height,
-                                     width,
-                                     keypoint_threshold=0.11, names=False):
+def keypoints_and_edges_for_display(
+  keypoints_with_scores,
+  height,
+  width,
+  keypoint_threshold=0.11,
+  names=False
+):
   """Returns high confidence keypoints and edges for visualization.
 
   Args:
@@ -99,7 +102,8 @@ def keypoints_and_edges_for_display(keypoints_with_scores,
         line_seg = np.array([[x_start, y_start], [x_end, y_end]])
         keypoint_edges_all.append(line_seg)
         edge_colors.append(color)
-        edges_with_names[f'{KEYPOINT_DICT_INVERTED[edge_pair[0]]}-{KEYPOINT_DICT_INVERTED[edge_pair[1]]}'] = line_seg
+        name = f'{KEYPOINT_DICT_INVERTED[edge_pair[0]]}-{KEYPOINT_DICT_INVERTED[edge_pair[1]]}'
+        edges_with_names[name] = line_seg
 
   if keypoints_all:
     keypoints_xy = np.concatenate(keypoints_all, axis=0)
