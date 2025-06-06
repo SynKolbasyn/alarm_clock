@@ -71,8 +71,6 @@ def get_keypoints(image, from_nparray=False):
         keypoints"""
     if from_nparray:
         image = tf.convert_to_tensor(image, dtype=np.uint8)
-        # image = tf.image.decode_jpeg(image)
-        pass
     else:
         image_path = image
         image = tf.io.read_file(image_path)
