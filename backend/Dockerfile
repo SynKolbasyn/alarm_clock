@@ -18,7 +18,7 @@ COPY ./pyproject.toml ./
 RUN $HOME/.local/bin/uv sync
 
 COPY ./template.jpg ./
-COPY ./server.py ./
+COPY ./server_test.py ./
 COPY ./CV/ ./CV/
 
-CMD $HOME/.local/bin/uv run gunicorn server:app --workers $(nproc) --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80
+CMD $HOME/.local/bin/uv run gunicorn server_test:app --workers $(nproc) --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:80

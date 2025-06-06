@@ -68,35 +68,9 @@ html = """
 
 
 #load pattern image
-_, _, _, etalon_edges_with_names = keypoints_and_edges_for_display(get_keypoints('template.jpg'),
-                                                                   1280, 720, names=True)
-
-
-async def capture_frames():
-    """Функция для захвата кадров с веб-камеры"""
-    global current_frame, is_correct_pose
-    cap = cv2.VideoCapture(0)
-
-    try:
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # Изменяем размер и конвертируем в JPEG
-            frame = cv2.resize(frame, (640, 480))
-            frame = cv2.rotate(frame, cv2.ROTATE_180)
-            frame= pic_to_skeleton(frame, from_nparray=True)
-            frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-
-            _, _, _, edges_with_names = keypoints_and_edges_for_display(get_keypoints(frame, from_nparray=True), 1280,
-                                                                        720, names=True)
-            is_correct_pose = estimate(etalon_edges_with_names, edges_with_names)
-            current_frame = buffer.tobytes()
-            await asyncio.sleep(0.1)  # ~30 FPS
-    finally:
-        cap.release()
+async def get_etalon_edges_with_names():
+    _, _, _, res = keypoints_and_edges_for_display(get_keypoints('template.jpg'), 1280, 720, names=True)
+    return res
 
 
 @app.get("/stream/")
@@ -106,10 +80,15 @@ async def get():
 
 @app.post("/")
 async def root(request: Request, etalon_edges_with_names: Annotated[dict, Depends(get_etalon_edges_with_names)]):
+    global is_correct_pose, current_frame
+
     data: bytes = await request.body()
-    print(len(data))
     image = cv2.imdecode(np.asarray(bytearray(data), dtype=np.uint8), cv2.IMREAD_COLOR)
     image = cv2.rotate(image, cv2.ROTATE_180)
+    frame = pic_to_skeleton(image, from_nparray=True)
+    cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+    _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+    current_frame = buffer.tobytes()
 
     _, _, _, edges_with_names = keypoints_and_edges_for_display(get_keypoints(image, from_nparray=True), 1280, 720,
                                                                 names=True)
@@ -129,7 +108,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Кодируем кадр в base64
                 frame_base64 = base64.b64encode(current_frame).decode('utf-8')
                 await websocket.send_text(frame_base64)
-            await asyncio.sleep(0.033)  # ~30 FPS
+            await asyncio.sleep(0.1)  # ~10 FPS
     except WebSocketDisconnect:
         print("Client disconnected")
 
@@ -145,15 +124,15 @@ async def websocket_endpoint_text(websocket: WebSocket):
                 await websocket.send_text("Ок")
             else:
                 await websocket.send_text("нот Ок")
-            await asyncio.sleep(0.033)  # ~30 FPS
+            await asyncio.sleep(0.1)  # ~10 FPS
     except WebSocketDisconnect:
         print("Client disconnected")
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Запускаем захват кадров при старте приложения"""
-    asyncio.create_task(capture_frames())
+# @app.on_event("startup")
+# async def startup_event():
+#     """Запускаем захват кадров при старте приложения"""
+#     asyncio.create_task(capture_frames())
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ def estimate(pattern, detect):
             pattern_points = pattern[i][1] - pattern[i][0]
         except Exception:
             print(f'cannot get data about edge: {i}')
-            continue
+            return False
         #edges состоит из точки начала и концаq
         dot = np.dot(detect_points, pattern_points) #скалярное умножение
         detect_norm = np.linalg.norm(detect_points, ord=None) # норма Фробениуса
