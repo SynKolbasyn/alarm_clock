@@ -1,7 +1,7 @@
-/.idea/
-/camera-detect.jpg
-/.venv
-/uv.lock
-/database/
+camera-detect.jpg
+.venv/
+uv.lock
+database/
 
 __pycache__/
+.idea/

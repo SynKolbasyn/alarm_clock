@@ -2,7 +2,7 @@ import numpy as np
 from math import sqrt
 import os
 
-_LIMIT = 20
+_LIMIT = 30
 
 
 def estimate(pattern, detect):
@@ -14,13 +14,15 @@ def estimate(pattern, detect):
         Flag - is detected image is similar with pattern."""
     mean = 0
     for i in detect:
+        if i == 'nose-left_eye' or i == 'nose-right_eye' or i == 'right_eye-right_ear' or i == 'left_eye-left_ear':
+            continue
         os.system('clear')
         detect_points = detect[i][1] - detect[i][0]
         try:
             pattern_points = pattern[i][1] - pattern[i][0]
         except Exception:
             print(f'cannot get data about edge: {i}')
-            return False
+            continue
         #edges состоит из точки начала и концаq
         dot = np.dot(detect_points, pattern_points) #скалярное умножение
         detect_norm = np.linalg.norm(detect_points, ord=None) # норма Фробениуса
